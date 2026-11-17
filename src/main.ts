@@ -180,7 +180,7 @@ function buildTiles(): DirectoryTileDef[] {
       metric: (s) =>
         s.arenaSessions > 0
           ? `${s.arenaRank} · ${s.arenaSessions} partidas`
-          : '14 disciplinas cognitivas',
+          : '18 disciplinas cognitivas',
     },
   ];
 
