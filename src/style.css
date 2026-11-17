@@ -639,6 +639,7 @@ button {
   gap: 12px;
 }
 
+.dir-form label.dir-inline-check,
 .dir-inline-check {
   display: inline-flex;
   flex-direction: row;
