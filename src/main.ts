@@ -127,6 +127,16 @@ function buildTiles(): DirectoryTileDef[] {
       metric: () => '1,290+ ideas y recursos',
     },
     {
+      id: 'mod-focuslab',
+      title: 'Oratoria y Enfoque',
+      prefix: 'Módulo Atelier',
+      category: 'atelier',
+      accent: '#0f766e',
+      icon: Icons.mic,
+      href: resolveEcosystemAppUrl('atelier', 'focuslab'),
+      metric: () => 'Muletillas, Schulte y Recall',
+    },
+    {
       id: 'mod-singing',
       title: 'Estudio de Canto',
       prefix: 'Módulo Atelier',
