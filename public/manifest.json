@@ -1,0 +1,23 @@
+{
+  "name": "Directorio del Ecosistema",
+  "short_name": "Directorio",
+  "description": "Portal unificado para Atelier Diario, UNUmbral y OMNI ARENA sincronizado con Supabase.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f1f4f8",
+  "theme_color": "#166534",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
