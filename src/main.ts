@@ -117,6 +117,16 @@ function buildTiles(): DirectoryTileDef[] {
       metric: () => 'Frases guardadas y notas',
     },
     {
+      id: 'mod-vault',
+      title: 'Baúl de Guardados',
+      prefix: 'Módulo Atelier',
+      category: 'atelier',
+      accent: '#0f4c81',
+      icon: Icons.archive,
+      href: resolveEcosystemAppUrl('atelier', 'vault'),
+      metric: () => '1,290+ ideas y recursos',
+    },
+    {
       id: 'mod-singing',
       title: 'Estudio de Canto',
       prefix: 'Módulo Atelier',
@@ -343,9 +353,10 @@ function renderApp(): void {
     return ap - bp;
   });
 
+  const atelierCount = tiles.filter((t) => t.category === 'atelier').length;
   const tabs: { id: DirectoryCategory; label: string }[] = [
     { id: 'all', label: 'Todo el ecosistema' },
-    { id: 'atelier', label: 'Atelier Diario (8)' },
+    { id: 'atelier', label: `Atelier Diario (${atelierCount})` },
     { id: 'universidad', label: 'Universidad' },
     { id: 'entrenamiento', label: 'Entrenamiento' },
     { id: 'personal', label: 'Mis Accesos' },
