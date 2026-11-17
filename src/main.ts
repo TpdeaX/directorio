@@ -180,7 +180,7 @@ function buildTiles(): DirectoryTileDef[] {
       metric: (s) =>
         s.arenaSessions > 0
           ? `${s.arenaRank} · ${s.arenaSessions} partidas`
-          : '10 disciplinas cognitivas',
+          : '14 disciplinas cognitivas',
     },
   ];
 
@@ -392,10 +392,6 @@ function renderApp(): void {
               <span>${esc(cloudLabel)}</span>
             </button>
 
-            <a class="dir-sos-btn" href="${resolveEcosystemAppUrl('atelier', 'calm')}">
-              ${Icons.wind(15)}<span>SOS Calma</span>
-            </a>
-
             <button type="button" class="dir-icon-btn" id="dir-theme-toggle" title="${theme === 'day' ? 'Cambiar a modo noche' : 'Cambiar a modo día'}">
               ${theme === 'day' ? Icons.moon(17) : Icons.sun(17)}
             </button>
@@ -413,12 +409,15 @@ function renderApp(): void {
       </header>
 
       <main class="dir-main">
-        <section class="dir-quick-launch" aria-label="Accesos directos principales">
-          <span class="dir-quick-label">Suites principales del ecosistema</span>
-          <div class="dir-quick-pills">
-            <a class="dir-quick-pill" href="${resolveEcosystemAppUrl('atelier')}">${Icons.book(15)}<span>Atelier Diario</span>${Icons.external(13)}</a>
-            <a class="dir-quick-pill" href="${resolveEcosystemAppUrl('unumbral')}">${Icons.graduation(15)}<span>UNUmbral</span>${Icons.external(13)}</a>
-            <a class="dir-quick-pill" href="${resolveEcosystemAppUrl('arena')}">${Icons.gamepad(15)}<span>OMNI ARENA</span>${Icons.external(13)}</a>
+        <section class="dir-hero-strip" aria-label="Resumen del ecosistema">
+          <div class="dir-hero-copy">
+            <h1>Ecosistema Personal</h1>
+            <p>Tus módulos de estudio, organización universitaria y entrenamiento cognitivo sincronizados en un solo lugar.</p>
+          </div>
+          <div class="dir-hero-kpis">
+            <div class="dir-kpi"><span>Atelier Hoy</span><strong>${summary.atelierTodayDone}/${summary.atelierTotalModules}</strong></div>
+            <div class="dir-kpi"><span>Cursos UNU</span><strong>${summary.unumbralCourses}</strong></div>
+            <div class="dir-kpi"><span>OMNI ARENA</span><strong>${esc(summary.arenaRank)}</strong></div>
           </div>
         </section>
 
@@ -439,7 +438,6 @@ function renderApp(): void {
             <button type="button" class="dir-btn ${editMode ? 'dir-btn-primary' : ''}" id="dir-toggle-edit">
               ${Icons.sliders(15)}<span>${editMode ? 'Listo' : 'Personalizar'}</span>
             </button>
-            <button type="button" class="dir-btn" id="dir-open-cloud-2">${Icons.cloud(15)}<span>Respaldo Supabase</span></button>
           </div>
         </section>
 
@@ -574,10 +572,6 @@ function renderApp(): void {
 
 function bindEvents(): void {
   root.querySelector('#dir-open-cloud')?.addEventListener('click', () => {
-    activeModal = 'cloud';
-    renderApp();
-  });
-  root.querySelector('#dir-open-cloud-2')?.addEventListener('click', () => {
     activeModal = 'cloud';
     renderApp();
   });
