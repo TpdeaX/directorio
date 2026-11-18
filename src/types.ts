@@ -1,5 +1,7 @@
 export type ThemeMode = 'day' | 'night';
 
+export type EcoAppId = 'directorio' | 'atelier' | 'unumbral' | 'arena';
+
 export type DirectoryCategory = 'all' | 'atelier' | 'universidad' | 'entrenamiento' | 'personal';
 
 export type EcosystemScope =
@@ -7,6 +9,15 @@ export type EcosystemScope =
   | 'atelier_profile'
   | 'unumbral_backup'
   | 'arena_profile';
+
+export interface ArenaCatalogMeta {
+  version: number;
+  total: number;
+  academies: number;
+  dexterity2d: number;
+  action3d: number;
+  updatedAt: number;
+}
 
 export interface CustomDirectoryLink {
   id: string;
@@ -38,16 +49,20 @@ export interface DirectoryConfig {
 }
 
 export interface CompanionSummary {
+  atelierHasData: boolean;
   atelierTodayDone: number;
   atelierTotalModules: number;
   atelierStreak: number;
-  atelierLevel: number;
   docsCount: number;
+  unumbralHasData: boolean;
   unumbralCourses: number;
   unumbralPendingTasks: number;
+  unumbralTodayClasses: number;
   unumbralCycles: number;
   unumbralUpdatedAt: number;
+  arenaHasData: boolean;
   arenaRank: string;
+  arenaOverall: number;
   arenaSessions: number;
   arenaScore: number;
   arenaUpdatedAt: number;

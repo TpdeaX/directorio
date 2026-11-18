@@ -121,4 +121,19 @@ export const Icons = {
       `<polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/>`,
       s
     ),
+  bookOpen: (s = 18) =>
+    svg(
+      `<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>`,
+      s
+    ),
+  omni: (s = 18) =>
+    svg(
+      `<polygon points="12 2 21 7 21 17 12 22 3 17 3 7"/><circle cx="12" cy="12" r="3"/>`,
+      s
+    ),
+  closeX: (s = 16) =>
+    svg(
+      `<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>`,
+      s
+    ),
 };

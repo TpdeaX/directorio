@@ -1,15 +1,41 @@
 import { cloudSync } from '../services/CloudSync';
 import {
+  ArenaCatalogMeta,
   CompanionSummary,
   CustomDirectoryLink,
   DirectoryCategory,
   DirectoryConfig,
+  EcoAppId,
   EcosystemScope,
   ThemeMode,
 } from '../types';
 
 const STORAGE_KEY = 'atelier_directory_config_v1';
 const THEME_KEY = 'umbral-theme';
+const ARENA_META_KEY = 'omni_arena_catalog_meta_v1';
+
+const DEFAULT_ARENA_META: ArenaCatalogMeta = {
+  version: 1,
+  total: 26,
+  academies: 8,
+  dexterity2d: 13,
+  action3d: 5,
+  updatedAt: 0,
+};
+
+const ECO_APP_PORT: Record<EcoAppId, number> = {
+  directorio: 5178,
+  atelier: 5176,
+  unumbral: 5177,
+  arena: 5175,
+};
+
+const ECO_APP_PATH: Record<EcoAppId, string> = {
+  directorio: '/directorio/',
+  atelier: '/atelier-diario/',
+  unumbral: '/UNUmbral/',
+  arena: '/omni-arena/',
+};
 
 export const DEFAULT_DIRECTORY_ORDER = [
   'mod-reader',
@@ -19,11 +45,37 @@ export const DEFAULT_DIRECTORY_ORDER = [
   'mod-language',
   'mod-mindset',
   'mod-vault',
+  'mod-focuslab',
   'mod-singing',
   'mod-calm',
   'app-unumbral',
   'app-arena',
 ];
+
+function todayStamp(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export function normalizeEcoTheme(raw: string | null | undefined): 'light' | 'dark' | null {
+  if (!raw) return null;
+  const v = raw.trim().toLowerCase();
+  if (v === 'dark' || v === 'night') return 'dark';
+  if (v === 'light' || v === 'day') return 'light';
+  return null;
+}
+
+function toInternalTheme(eco: 'light' | 'dark'): ThemeMode {
+  return eco === 'dark' ? 'night' : 'day';
+}
+
+function toEcoTheme(theme: ThemeMode): 'light' | 'dark' {
+  return theme === 'night' ? 'dark' : 'light';
+}
+
+function isPrivateIp(host: string): boolean {
+  return /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+}
 
 function computeInitials(name: string): string {
   const parts = name
@@ -129,19 +181,55 @@ class DirectoryStore {
 
   public getTheme(): ThemeMode {
     try {
-      return localStorage.getItem(THEME_KEY) === 'night' ? 'night' : 'day';
-    } catch {
-      return 'day';
-    }
-  }
-
-  public setTheme(theme: ThemeMode): void {
-    try {
-      localStorage.setItem(THEME_KEY, theme);
+      const normalized = normalizeEcoTheme(localStorage.getItem(THEME_KEY));
+      if (normalized) return toInternalTheme(normalized);
     } catch {
       // Ignore storage error
     }
-    document.documentElement.setAttribute('data-theme', theme);
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
+      return 'night';
+    }
+    return 'day';
+  }
+
+  public setTheme(theme: ThemeMode): void {
+    const eco = toEcoTheme(theme);
+    try {
+      localStorage.setItem(THEME_KEY, eco);
+    } catch {
+      // Ignore storage error
+    }
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+  }
+
+  public applyIncomingEcoTheme(): ThemeMode {
+    if (typeof window !== 'undefined') {
+      try {
+        const url = new URL(window.location.href);
+        const param = normalizeEcoTheme(url.searchParams.get('eco_theme'));
+        if (param) {
+          localStorage.setItem(THEME_KEY, param);
+          url.searchParams.delete('eco_theme');
+          const cleanUrl = `${url.pathname}${url.search}${url.hash}`;
+          window.history.replaceState(null, '', cleanUrl || './');
+        } else {
+          const raw = localStorage.getItem(THEME_KEY);
+          const norm = normalizeEcoTheme(raw);
+          if (norm && raw !== norm) {
+            localStorage.setItem(THEME_KEY, norm);
+          }
+        }
+      } catch {
+        // Ignore URL/storage errors
+      }
+    }
+    const theme = this.getTheme();
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+    return theme;
   }
 
   public subscribe(fn: () => void): () => void {
@@ -283,24 +371,127 @@ class DirectoryStore {
 
 export const directoryStore = new DirectoryStore();
 
+function appendEcoThemeParam(baseUrl: string, ecoTheme: 'light' | 'dark'): string {
+  const sep = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${sep}eco_theme=${ecoTheme}`;
+}
+
+export function resolveEcoUrl(
+  app: EcoAppId,
+  opts: { hash?: string; carryTheme?: boolean } = {}
+): string {
+  const cleanHash = opts.hash ? `#${opts.hash.replace(/^#/, '')}` : '';
+  const carryTheme = opts.carryTheme !== false;
+  const ecoTheme = toEcoTheme(directoryStore.getTheme());
+
+  const customUrls = directoryStore.get().companionUrls;
+  const custom =
+    app === 'atelier'
+      ? customUrls.atelier?.trim()
+      : app === 'unumbral'
+        ? customUrls.unumbral?.trim()
+        : app === 'arena'
+          ? customUrls.arena?.trim()
+          : '';
+
+  if (custom) {
+    let base = `${custom.replace(/#.*$/, '').replace(/\/?$/, '/')}`;
+    try {
+      if (typeof window !== 'undefined' && carryTheme) {
+        const targetOrigin = new URL(base, window.location.href).origin;
+        if (targetOrigin !== window.location.origin) {
+          base = appendEcoThemeParam(base, ecoTheme);
+        }
+      }
+    } catch {
+      // Ignore malformed custom URL
+    }
+    return `${base}${cleanHash}`;
+  }
+
+  const loc = typeof window !== 'undefined' ? window.location : null;
+  const host = loc?.hostname ?? '';
+  const port = loc?.port ?? '';
+  const protocol = loc?.protocol || 'http:';
+  const isCapacitor =
+    typeof window !== 'undefined' && Boolean((window as { Capacitor?: unknown }).Capacitor);
+
+  const route = ECO_APP_PATH[app];
+  const appPort = ECO_APP_PORT[app];
+
+  let base = '';
+  let crossOrigin = false;
+
+  if (isCapacitor || (host === 'localhost' && port === '')) {
+    base = `https://tpdeax.github.io${route}`;
+    crossOrigin = true;
+  } else if (host.endsWith('github.io')) {
+    base = `..${route}`;
+    crossOrigin = false;
+  } else if (
+    port !== '' &&
+    (host === 'localhost' || host === '127.0.0.1' || isPrivateIp(host))
+  ) {
+    base = `${protocol}//${host}:${appPort}/`;
+    crossOrigin = String(appPort) !== String(port);
+  } else {
+    base = `https://tpdeax.github.io${route}`;
+    crossOrigin = true;
+  }
+
+  if (crossOrigin && carryTheme) {
+    base = appendEcoThemeParam(base, ecoTheme);
+  }
+  return `${base}${cleanHash}`;
+}
+
 export function resolveEcosystemAppUrl(
   target: 'atelier' | 'unumbral' | 'arena',
   hash = ''
 ): string {
-  const custom = directoryStore.get().companionUrls[target]?.trim();
-  const suffix = hash ? (hash.startsWith('#') ? hash : `#${hash}`) : '';
-  if (custom) {
-    return `${custom.replace(/#.*$/, '').replace(/\/?$/, '/')}${suffix}`;
+  return resolveEcoUrl(target, { hash });
+}
+
+export function readArenaCatalogMeta(): ArenaCatalogMeta {
+  try {
+    const raw = localStorage.getItem(ARENA_META_KEY);
+    if (!raw) return DEFAULT_ARENA_META;
+    const parsed = JSON.parse(raw) as Partial<ArenaCatalogMeta>;
+    const total = Number(parsed.total);
+    const academies = Number(parsed.academies);
+    if (Number.isFinite(total) && total > 0 && Number.isFinite(academies) && academies >= 0) {
+      return {
+        version: 1,
+        total,
+        academies,
+        dexterity2d: Number(parsed.dexterity2d) || DEFAULT_ARENA_META.dexterity2d,
+        action3d: Number(parsed.action3d) || DEFAULT_ARENA_META.action3d,
+        updatedAt: Number(parsed.updatedAt) || 0,
+      };
+    }
+  } catch {
+    // Fallback to default metadata
   }
-  const host = typeof window !== 'undefined' ? window.location.hostname : '';
-  if (host.endsWith('github.io')) {
-    if (target === 'atelier') return `../atelier-diario/${suffix}`;
-    if (target === 'unumbral') return `../UNUmbral/${suffix}`;
-    return `../omni-arena/${suffix}`;
+  return DEFAULT_ARENA_META;
+}
+
+export function ratingToRankGrade(rating: number): string {
+  if (rating >= 900) return 'OMNI';
+  if (rating >= 800) return 'SS';
+  if (rating >= 700) return 'S';
+  if (rating >= 580) return 'A';
+  if (rating >= 460) return 'B';
+  if (rating >= 340) return 'C';
+  return 'D';
+}
+
+function safeJsonParse<T>(raw: string | null): T | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
   }
-  if (target === 'atelier') return `http://localhost:5176/${suffix}`;
-  if (target === 'unumbral') return `http://localhost:5177/${suffix}`;
-  return `http://localhost:5175/${suffix}`;
 }
 
 export function buildCompanionSummary(
@@ -308,89 +499,199 @@ export function buildCompanionSummary(
   remoteDocsCount?: number | null
 ): CompanionSummary {
   const summary: CompanionSummary = {
+    atelierHasData: false,
     atelierTodayDone: 0,
-    atelierTotalModules: 8,
+    atelierTotalModules: 9,
     atelierStreak: 0,
-    atelierLevel: 1,
     docsCount: remoteDocsCount ?? 0,
+    unumbralHasData: false,
     unumbralCourses: 0,
     unumbralPendingTasks: 0,
+    unumbralTodayClasses: 0,
     unumbralCycles: 0,
     unumbralUpdatedAt: 0,
-    arenaRank: 'BRONZE II',
+    arenaHasData: false,
+    arenaRank: '--',
+    arenaOverall: 300,
     arenaSessions: 0,
     arenaScore: 0,
     arenaUpdatedAt: 0,
   };
 
   try {
-    const remoteAtelier = remoteScopes?.atelier_profile?.payload as
-      | { streak?: number; xp?: number; dailyTasks?: Record<string, Record<string, boolean>> }
-      | undefined;
-    const localAtelierRaw = localStorage.getItem('atelier_profile_v2');
-    const localAtelier = localAtelierRaw
-      ? (JSON.parse(localAtelierRaw) as {
-          streak?: number;
-          xp?: number;
-          dailyTasks?: Record<string, Record<string, boolean>>;
-        })
-      : undefined;
-    const atelier = remoteAtelier || localAtelier;
-    if (atelier) {
-      const todayKey = new Date().toISOString().slice(0, 10);
-      const todayMap = atelier.dailyTasks?.[todayKey] ?? {};
-      summary.atelierTodayDone = Object.values(todayMap).filter(Boolean).length;
-      summary.atelierStreak = Number(atelier.streak) || 0;
-      const xp = Number(atelier.xp) || 0;
-      summary.atelierLevel = Math.max(1, Math.floor(xp / 240) + 1);
-    }
+    const today = todayStamp();
 
-    if (remoteDocsCount === null || remoteDocsCount === undefined) {
-      const docsRaw = localStorage.getItem('atelier_docs_local_v1');
-      if (docsRaw) {
-        const parsed = JSON.parse(docsRaw) as unknown[];
-        if (Array.isArray(parsed)) summary.docsCount = parsed.length;
+    // 1. Atelier Diario (remoto vs local atelier_diario_profile_v1 -> heredado atelier_profile_v2)
+    interface AtelierProfileShape {
+      dailyStreak?: number;
+      streak?: number;
+      lastActiveDay?: string;
+      todayHabits?: Record<string, boolean>;
+      dailyTasks?: Record<string, Record<string, boolean>>;
+      updatedAt?: number;
+    }
+    const remoteAtelier = remoteScopes?.atelier_profile?.payload as AtelierProfileShape | undefined;
+    const remoteAtelierTs = Number(remoteScopes?.atelier_profile?.updated_at) || Number(remoteAtelier?.updatedAt) || 0;
+    const localAtelier =
+      safeJsonParse<AtelierProfileShape>(localStorage.getItem('atelier_diario_profile_v1')) ||
+      safeJsonParse<AtelierProfileShape>(localStorage.getItem('atelier_profile_v2'));
+    const localAtelierTs = Number(localAtelier?.updatedAt) || 0;
+
+    const atelier =
+      remoteAtelier && (!localAtelier || remoteAtelierTs >= localAtelierTs)
+        ? remoteAtelier
+        : localAtelier;
+
+    if (atelier && typeof atelier === 'object') {
+      summary.atelierHasData = true;
+      summary.atelierStreak = Number(atelier.dailyStreak ?? atelier.streak) || 0;
+      if (atelier.todayHabits && typeof atelier.todayHabits === 'object') {
+        const keys = Object.keys(atelier.todayHabits);
+        summary.atelierTotalModules = keys.length || 9;
+        summary.atelierTodayDone =
+          atelier.lastActiveDay === today
+            ? Object.values(atelier.todayHabits).filter(Boolean).length
+            : 0;
+      } else if (atelier.dailyTasks) {
+        const todayMap = atelier.dailyTasks[today] ?? {};
+        summary.atelierTotalModules = 9;
+        summary.atelierTodayDone = Object.values(todayMap).filter(Boolean).length;
       }
     }
 
-    const remoteUmbral = remoteScopes?.unumbral_backup?.payload as
-      | {
-          data?: { cursos?: unknown[]; tareas?: { estado?: string; completada?: boolean }[]; ciclos?: unknown[] };
-          timestamp?: number;
-        }
-      | undefined;
-    const localUmbralRaw = localStorage.getItem('unumbral_last_snapshot_v1');
-    const localUmbral = localUmbralRaw ? JSON.parse(localUmbralRaw) : undefined;
-    const uSource = remoteUmbral?.data || localUmbral;
-    if (uSource) {
-      summary.unumbralCourses = Array.isArray(uSource.cursos) ? uSource.cursos.length : 0;
-      const tareas = Array.isArray(uSource.tareas) ? uSource.tareas : [];
-      summary.unumbralPendingTasks = tareas.filter(
-        (t: { estado?: string; completada?: boolean }) =>
-          t.estado !== 'completed' && t.completada !== true
-      ).length;
-      summary.unumbralCycles = Array.isArray(uSource.ciclos) ? uSource.ciclos.length : 0;
-      summary.unumbralUpdatedAt =
-        remoteScopes?.unumbral_backup?.updated_at || Number(remoteUmbral?.timestamp) || 0;
+    if (remoteDocsCount === null || remoteDocsCount === undefined) {
+      const parsedDocs = safeJsonParse<unknown[]>(localStorage.getItem('atelier_docs_local_v1'));
+      if (Array.isArray(parsedDocs)) summary.docsCount = parsedDocs.length;
     }
 
-    const remoteArena = remoteScopes?.arena_profile?.payload as
-      | { rankTier?: string; totalSessions?: number; bestScore?: number; highScores?: Record<string, { bestScore?: number }> }
-      | undefined;
-    const localArenaRaw = localStorage.getItem('omni_arena_profile_v1');
-    const localArena = localArenaRaw ? JSON.parse(localArenaRaw) : undefined;
-    const arena = remoteArena || localArena;
-    if (arena) {
-      summary.arenaRank = String(arena.rankTier || 'BRONZE II');
-      summary.arenaSessions = Number(arena.totalSessions) || 0;
-      const scores = arena.highScores
-        ? Object.values(arena.highScores as Record<string, { bestScore?: number }>).map(
-            (h) => Number(h?.bestScore) || 0
-          )
+    // 2. UNUmbral (remoto unumbral_backup -> local unumbral_last_snapshot_v1 -> heredado atelier_umbral_snapshot_v1)
+    interface UmbralRawBackup {
+      data?: {
+        cursos?: unknown[];
+        tareas?: { estado?: string; completada?: boolean }[];
+        ciclos?: unknown[];
+        clases?: unknown[];
+      };
+      cursos?: unknown[];
+      tareas?: { estado?: string; completada?: boolean }[];
+      ciclos?: unknown[];
+      clases?: unknown[];
+      timestamp?: number;
+      _updatedAt?: number;
+      version?: number;
+      updatedAt?: number;
+      coursesCount?: number;
+      pendingTasks?: number;
+      todayClasses?: number;
+      cyclesCount?: number;
+    }
+
+    const remoteUmbralWrap = remoteScopes?.unumbral_backup;
+    const remoteUmbral = remoteUmbralWrap?.payload as UmbralRawBackup | undefined;
+    const remoteUmbralTs =
+      Number(remoteUmbralWrap?.updated_at) || Number(remoteUmbral?.timestamp) || 0;
+    const localUmbralSnap = safeJsonParse<UmbralRawBackup>(
+      localStorage.getItem('unumbral_last_snapshot_v1')
+    );
+    const localUmbralLegacy = safeJsonParse<UmbralRawBackup>(
+      localStorage.getItem('atelier_umbral_snapshot_v1')
+    );
+    const localSnapTs = Number(localUmbralSnap?.updatedAt) || 0;
+
+    if (remoteUmbral && (!localUmbralSnap || remoteUmbralTs >= localSnapTs)) {
+      const uData = remoteUmbral.data || remoteUmbral;
+      summary.unumbralHasData = true;
+      summary.unumbralCourses = Array.isArray(uData.cursos) ? uData.cursos.length : 0;
+      const tareas = Array.isArray(uData.tareas) ? uData.tareas : [];
+      summary.unumbralPendingTasks = tareas.filter(
+        (t) => t.estado !== 'completed' && t.completada !== true
+      ).length;
+      summary.unumbralCycles = Array.isArray(uData.ciclos) ? uData.ciclos.length : 0;
+      summary.unumbralUpdatedAt = remoteUmbralTs;
+    } else if (localUmbralSnap && typeof localUmbralSnap.coursesCount === 'number') {
+      summary.unumbralHasData = true;
+      summary.unumbralCourses = Number(localUmbralSnap.coursesCount) || 0;
+      summary.unumbralPendingTasks = Number(localUmbralSnap.pendingTasks) || 0;
+      summary.unumbralTodayClasses = Number(localUmbralSnap.todayClasses) || 0;
+      summary.unumbralCycles = Number(localUmbralSnap.cyclesCount) || 0;
+      summary.unumbralUpdatedAt = localSnapTs;
+    } else if (localUmbralSnap || localUmbralLegacy) {
+      const uSource = localUmbralSnap?.data || localUmbralSnap || localUmbralLegacy;
+      if (uSource) {
+        summary.unumbralHasData = true;
+        summary.unumbralCourses = Array.isArray(uSource.cursos) ? uSource.cursos.length : 0;
+        const tareas = Array.isArray(uSource.tareas) ? uSource.tareas : [];
+        summary.unumbralPendingTasks = tareas.filter(
+          (t) => t.estado !== 'completed' && t.completada !== true
+        ).length;
+        summary.unumbralCycles = Array.isArray(uSource.ciclos) ? uSource.ciclos.length : 0;
+        summary.unumbralUpdatedAt =
+          Number(
+            localUmbralSnap?._updatedAt ??
+              localUmbralSnap?.timestamp ??
+              localUmbralLegacy?._updatedAt ??
+              localUmbralLegacy?.timestamp
+          ) || 0;
+      }
+    }
+
+    // 3. OMNI ARENA (remoto arena_profile vs local omni_arena_profile_v1)
+    interface ArenaProfileShape {
+      level?: number;
+      xp?: number;
+      ratings?: Record<string, number>;
+      bestScores?: Record<string, number>;
+      playCounts?: Record<string, number>;
+      updatedAt?: number;
+      // Legacy fallbacks
+      rankTier?: string;
+      totalSessions?: number;
+      bestScore?: number;
+      highScores?: Record<string, { bestScore?: number }>;
+    }
+
+    const remoteArenaWrap = remoteScopes?.arena_profile;
+    const remoteArena = remoteArenaWrap?.payload as ArenaProfileShape | undefined;
+    const remoteArenaTs =
+      Number(remoteArenaWrap?.updated_at) || Number(remoteArena?.updatedAt) || 0;
+    const localArena = safeJsonParse<ArenaProfileShape>(
+      localStorage.getItem('omni_arena_profile_v1')
+    );
+    const localArenaTs = Number(localArena?.updatedAt) || 0;
+
+    const arena =
+      remoteArena && (!localArena || remoteArenaTs >= localArenaTs) ? remoteArena : localArena;
+
+    if (arena && typeof arena === 'object') {
+      summary.arenaHasData = true;
+      const ratingValues = arena.ratings
+        ? Object.values(arena.ratings).map(Number).filter((n) => Number.isFinite(n))
         : [];
+      const overall =
+        ratingValues.length > 0
+          ? Math.round(ratingValues.reduce((a, b) => a + b, 0) / ratingValues.length)
+          : 300;
+      summary.arenaOverall = overall;
+      summary.arenaRank = ratingValues.length > 0
+        ? ratingToRankGrade(overall)
+        : String(arena.rankTier || ratingToRankGrade(overall));
+
+      const playCountValues = arena.playCounts
+        ? Object.values(arena.playCounts).map((n) => Number(n) || 0)
+        : [];
+      summary.arenaSessions =
+        playCountValues.length > 0
+          ? playCountValues.reduce((a, b) => a + b, 0)
+          : Number(arena.totalSessions) || 0;
+
+      const bestValues = arena.bestScores
+        ? Object.values(arena.bestScores).map((n) => Number(n) || 0)
+        : arena.highScores
+          ? Object.values(arena.highScores).map((h) => Number(h?.bestScore) || 0)
+          : [];
       summary.arenaScore =
-        scores.length > 0 ? Math.max(...scores) : Number(arena.bestScore) || 0;
-      summary.arenaUpdatedAt = remoteScopes?.arena_profile?.updated_at || 0;
+        bestValues.length > 0 ? Math.max(...bestValues) : Number(arena.bestScore) || 0;
+      summary.arenaUpdatedAt = Math.max(remoteArenaTs, localArenaTs);
     }
   } catch {
     // Ignore storage/parse errors

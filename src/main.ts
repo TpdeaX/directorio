@@ -4,6 +4,8 @@ import { cloudSync, SUPABASE_SETUP_SQL } from './services/CloudSync';
 import {
   buildCompanionSummary,
   directoryStore,
+  readArenaCatalogMeta,
+  resolveEcoUrl,
   resolveEcosystemAppUrl,
 } from './state/DirectoryStore';
 import {
@@ -144,7 +146,7 @@ function buildTiles(): DirectoryTileDef[] {
       accent: '#be185d',
       icon: Icons.mic,
       href: resolveEcosystemAppUrl('atelier', 'singing'),
-      metric: () => '12 ejercicios y afinador',
+      metric: () => 'Canto, piano de 2 octavas y oído',
     },
     {
       id: 'mod-calm',
@@ -165,7 +167,7 @@ function buildTiles(): DirectoryTileDef[] {
       icon: Icons.graduation,
       href: resolveEcosystemAppUrl('unumbral'),
       metric: (s) =>
-        s.unumbralCourses > 0
+        s.unumbralHasData
           ? `${s.unumbralCourses} cursos · ${s.unumbralPendingTasks} tareas`
           : 'Horario, cursos y notas',
     },
@@ -177,10 +179,12 @@ function buildTiles(): DirectoryTileDef[] {
       accent: '#7c3aed',
       icon: Icons.gamepad,
       href: resolveEcosystemAppUrl('arena'),
-      metric: (s) =>
-        s.arenaSessions > 0
-          ? `${s.arenaRank} · ${s.arenaSessions} partidas`
-          : '18 disciplinas cognitivas',
+      metric: (s) => {
+        const meta = readArenaCatalogMeta();
+        return s.arenaHasData && s.arenaSessions > 0
+          ? `${s.arenaRank} (${s.arenaOverall}) · ${s.arenaSessions} partidas`
+          : `${meta.total} disciplinas · ${meta.academies} academias`;
+      },
     },
   ];
 
@@ -216,7 +220,7 @@ function renderCloudModal(): string {
       <div class="dir-modal" role="dialog" aria-modal="true" aria-label="Nube Supabase y Respaldo del Ecosistema">
         <div class="dir-modal-head">
           <h2>Nube Supabase y Respaldo del Ecosistema</h2>
-          <button type="button" class="dir-close-btn" data-close-modal aria-label="Cerrar">&times;</button>
+          <button type="button" class="dir-close-btn" data-close-modal aria-label="Cerrar">${Icons.closeX(16)}</button>
         </div>
         <p class="dir-empty">
           Guarda y sincroniza con el mismo <strong>código de espacio</strong>: orden del directorio, accesos propios, cuadernos/PDFs, perfil Atelier, respaldo de UNUmbral y puntajes de OMNI ARENA.
@@ -273,7 +277,7 @@ function renderProfileModal(): string {
       <div class="dir-modal" role="dialog" aria-modal="true" aria-label="Perfil y enlaces del Directorio">
         <div class="dir-modal-head">
           <h2>Perfil y configuración del Directorio</h2>
-          <button type="button" class="dir-close-btn" data-close-modal aria-label="Cerrar">&times;</button>
+          <button type="button" class="dir-close-btn" data-close-modal aria-label="Cerrar">${Icons.closeX(16)}</button>
         </div>
         <form class="dir-form" id="dir-profile-form">
           <label>
@@ -333,7 +337,27 @@ async function syncWithSupabase(pushLocalFirst = false): Promise<void> {
   if (remoteDir) {
     directoryStore.applyRemote(remoteDir);
   }
+  directoryStore.setTheme(directoryStore.getTheme());
   renderApp();
+}
+
+function renderEcoSwitch(): string {
+  return `
+    <nav class="eco-switch" aria-label="Aplicaciones del ecosistema">
+      <a class="eco-switch-link is-current" data-eco-app="directorio" aria-current="page" href="${esc(resolveEcoUrl('directorio'))}">
+        ${Icons.grid(16)}<span class="eco-label-full">Directorio</span><span class="eco-label-short">Directorio</span>
+      </a>
+      <a class="eco-switch-link" data-eco-app="atelier" href="${esc(resolveEcoUrl('atelier'))}">
+        ${Icons.bookOpen(16)}<span class="eco-label-full">Atelier Diario</span><span class="eco-label-short">Atelier</span>
+      </a>
+      <a class="eco-switch-link" data-eco-app="unumbral" href="${esc(resolveEcoUrl('unumbral'))}">
+        ${Icons.graduation(16)}<span class="eco-label-full">UNUmbral</span><span class="eco-label-short">UNUmbral</span>
+      </a>
+      <a class="eco-switch-link" data-eco-app="arena" href="${esc(resolveEcoUrl('arena'))}">
+        ${Icons.omni(16)}<span class="eco-label-full">OMNI ARENA</span><span class="eco-label-short">Arena</span>
+      </a>
+    </nav>
+  `;
 }
 
 function renderApp(): void {
@@ -372,8 +396,12 @@ function renderApp(): void {
     { id: 'personal', label: 'Mis Accesos' },
   ];
 
+  const emptyOriginNote =
+    'Sin datos de esta app en este origen. Abre el ecosistema publicado o activa la Nube para verlos aquí.';
+
   root.innerHTML = `
     <div class="dir-shell">
+      ${renderEcoSwitch()}
       <header class="dir-topbar">
         <div class="dir-topbar-main">
           <div class="dir-brand">
@@ -392,8 +420,9 @@ function renderApp(): void {
               <span>${esc(cloudLabel)}</span>
             </button>
 
-            <button type="button" class="dir-icon-btn" id="dir-theme-toggle" title="${theme === 'day' ? 'Cambiar a modo noche' : 'Cambiar a modo día'}">
-              ${theme === 'day' ? Icons.moon(17) : Icons.sun(17)}
+            <button type="button" class="dir-btn dir-btn-sm dir-theme-btn" id="dir-theme-toggle" title="${theme === 'day' ? 'Cambiar a modo noche' : 'Cambiar a modo día'}" aria-pressed="${theme === 'night'}">
+              ${theme === 'day' ? Icons.moon(16) : Icons.sun(16)}
+              <span>${theme === 'day' ? 'Tema: Día' : 'Tema: Noche'}</span>
             </button>
 
             <button type="button" class="dir-profile-chip" id="dir-open-profile" title="Editar perfil y enlaces">
@@ -415,9 +444,9 @@ function renderApp(): void {
             <p>Tus módulos de estudio, organización universitaria y entrenamiento cognitivo sincronizados en un solo lugar.</p>
           </div>
           <div class="dir-hero-kpis">
-            <div class="dir-kpi"><span>Atelier Hoy</span><strong>${summary.atelierTodayDone}/${summary.atelierTotalModules}</strong></div>
-            <div class="dir-kpi"><span>Cursos UNU</span><strong>${summary.unumbralCourses}</strong></div>
-            <div class="dir-kpi"><span>OMNI ARENA</span><strong>${esc(summary.arenaRank)}</strong></div>
+            <div class="dir-kpi"><span>Atelier Hoy</span><strong>${summary.atelierHasData ? `${summary.atelierTodayDone}/${summary.atelierTotalModules}` : '--'}</strong></div>
+            <div class="dir-kpi"><span>Cursos UNU</span><strong>${summary.unumbralHasData ? summary.unumbralCourses : '--'}</strong></div>
+            <div class="dir-kpi"><span>OMNI ARENA</span><strong>${summary.arenaHasData ? esc(summary.arenaRank) : '--'}</strong></div>
           </div>
         </section>
 
@@ -538,27 +567,50 @@ function renderApp(): void {
           <div class="dir-card">
             <div class="dir-card-head">
               <h2>Pulso de Atelier Diario</h2>
-              <a class="dir-btn dir-btn-sm" href="${resolveEcosystemAppUrl('atelier', 'studio')}">Abrir Cuaderno</a>
+              <a class="dir-btn dir-btn-sm" href="${esc(resolveEcosystemAppUrl('atelier', 'studio'))}">Abrir Cuaderno</a>
             </div>
-            <div class="dir-stat-grid">
-              <div class="dir-stat-box"><span>Hoy</span><strong>${summary.atelierTodayDone}/${summary.atelierTotalModules}</strong></div>
-              <div class="dir-stat-box"><span>Racha</span><strong>${summary.atelierStreak} días</strong></div>
-              <div class="dir-stat-box"><span>Nivel</span><strong>Niv. ${summary.atelierLevel}</strong></div>
-              <div class="dir-stat-box"><span>Documentos</span><strong>${summary.docsCount}</strong></div>
-            </div>
+            ${
+              summary.atelierHasData
+                ? `
+                  <p class="dir-origin-meta">Racha ${summary.atelierStreak} ${summary.atelierStreak === 1 ? 'día' : 'días'} · ${summary.atelierTodayDone}/${summary.atelierTotalModules} hábitos hoy</p>
+                  <div class="dir-stat-grid">
+                    <div class="dir-stat-box"><span>Hábitos hoy</span><strong>${summary.atelierTodayDone}/${summary.atelierTotalModules}</strong></div>
+                    <div class="dir-stat-box"><span>Racha</span><strong>${summary.atelierStreak} días</strong></div>
+                    <div class="dir-stat-box"><span>Documentos</span><strong>${summary.docsCount}</strong></div>
+                  </div>`
+                : `
+                  <div class="dir-origin-note">
+                    <p>${emptyOriginNote}</p>
+                    ${!configured ? `<button type="button" class="dir-btn dir-btn-sm" data-open-cloud>Configurar Nube</button>` : ''}
+                  </div>`
+            }
           </div>
 
           <div class="dir-card">
             <div class="dir-card-head">
               <h2>UNUmbral y OMNI ARENA</h2>
-              <a class="dir-btn dir-btn-sm" href="${resolveEcosystemAppUrl('unumbral')}">Ir a UNUmbral</a>
+              <a class="dir-btn dir-btn-sm" href="${esc(resolveEcosystemAppUrl('unumbral'))}">Ir a UNUmbral</a>
             </div>
-            <div class="dir-stat-grid">
-              <div class="dir-stat-box"><span>Cursos UNU</span><strong>${summary.unumbralCourses}</strong></div>
-              <div class="dir-stat-box"><span>Tareas pend.</span><strong>${summary.unumbralPendingTasks}</strong></div>
-              <div class="dir-stat-box"><span>Rango Arena</span><strong>${esc(summary.arenaRank)}</strong></div>
-              <div class="dir-stat-box"><span>Partidas</span><strong>${summary.arenaSessions}</strong></div>
-            </div>
+            ${
+              summary.unumbralHasData || summary.arenaHasData
+                ? `
+                  <div class="dir-stat-grid">
+                    <div class="dir-stat-box"><span>Cursos UNU</span><strong>${summary.unumbralHasData ? summary.unumbralCourses : '--'}</strong></div>
+                    <div class="dir-stat-box"><span>Tareas pend.</span><strong>${summary.unumbralHasData ? summary.unumbralPendingTasks : '--'}</strong></div>
+                    <div class="dir-stat-box"><span>Rango Arena</span><strong>${summary.arenaHasData ? `${esc(summary.arenaRank)} (${summary.arenaOverall})` : '--'}</strong></div>
+                    <div class="dir-stat-box"><span>Partidas</span><strong>${summary.arenaHasData ? summary.arenaSessions : '--'}</strong></div>
+                  </div>
+                  ${
+                    !summary.unumbralHasData || !summary.arenaHasData
+                      ? `<div class="dir-origin-note" style="margin-top:10px;"><p>${emptyOriginNote}</p>${!configured ? `<button type="button" class="dir-btn dir-btn-sm" data-open-cloud>Configurar Nube</button>` : ''}</div>`
+                      : ''
+                  }`
+                : `
+                  <div class="dir-origin-note">
+                    <p>${emptyOriginNote}</p>
+                    ${!configured ? `<button type="button" class="dir-btn dir-btn-sm" data-open-cloud>Configurar Nube</button>` : ''}
+                  </div>`
+            }
           </div>
         </section>
       </main>
@@ -574,6 +626,12 @@ function bindEvents(): void {
   root.querySelector('#dir-open-cloud')?.addEventListener('click', () => {
     activeModal = 'cloud';
     renderApp();
+  });
+  root.querySelectorAll<HTMLButtonElement>('[data-open-cloud]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      activeModal = 'cloud';
+      renderApp();
+    });
   });
   root.querySelector('#dir-open-profile')?.addEventListener('click', () => {
     activeModal = 'profile';
@@ -735,9 +793,13 @@ function bindEvents(): void {
       remote_scopes: remoteScopes,
       atelier_documents: remoteDocs,
       local: {
-        atelier_profile: localStorage.getItem('atelier_profile_v2'),
+        atelier_profile:
+          localStorage.getItem('atelier_diario_profile_v1') ||
+          localStorage.getItem('atelier_profile_v2'),
         arena_profile: localStorage.getItem('omni_arena_profile_v1'),
-        unumbral_snapshot: localStorage.getItem('unumbral_last_snapshot_v1'),
+        unumbral_snapshot:
+          localStorage.getItem('unumbral_last_snapshot_v1') ||
+          localStorage.getItem('atelier_umbral_snapshot_v1'),
       },
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -803,6 +865,18 @@ cloudSync.onStatusChange(() => {
         ? 'Nube con aviso'
         : `Supabase · ${cfg.spaceCode}`
       : 'Conectar Supabase';
+  }
+});
+
+directoryStore.applyIncomingEcoTheme();
+window.addEventListener('storage', (e) => {
+  if (e.key === 'umbral-theme') {
+    renderApp();
+  }
+});
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    renderApp();
   }
 });
 

@@ -71,10 +71,94 @@ button {
   cursor: pointer;
 }
 
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
 .dir-shell {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+/* ==================== ECOSYSTEM SWITCH BAR ==================== */
+
+.eco-switch {
+  --eco-bg: var(--bg-surface);
+  --eco-ink: var(--ink-primary);
+  --eco-ink-muted: var(--ink-secondary);
+  --eco-accent: var(--accent-primary);
+  --eco-accent-ink: var(--accent-primary-ink);
+  --eco-border: var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  background: var(--eco-bg);
+  border-bottom: 1px solid var(--eco-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.eco-switch::-webkit-scrollbar {
+  display: none;
+}
+
+.eco-switch-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--eco-ink-muted);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.eco-switch-link:hover {
+  color: var(--eco-ink);
+  background: var(--bg-soft);
+}
+
+.eco-switch-link:focus-visible {
+  outline: 2px solid var(--eco-accent);
+  outline-offset: -2px;
+}
+
+.eco-switch-link.is-current {
+  background: var(--eco-accent);
+  color: var(--eco-accent-ink);
+}
+
+.eco-label-short {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  .eco-switch {
+    justify-content: flex-start;
+    padding: 0 8px;
+  }
+  .eco-switch-link {
+    padding: 0 10px;
+    font-size: 0.78rem;
+  }
+  .eco-label-full {
+    display: none;
+  }
+  .eco-label-short {
+    display: inline;
+  }
 }
 
 /* ==================== TOPBAR ==================== */
@@ -644,6 +728,35 @@ button {
   color: var(--ink-secondary);
   font-size: 0.88rem;
   margin: 4px 0;
+}
+
+.dir-origin-meta {
+  margin: 0 0 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--ink-secondary);
+}
+
+.dir-origin-note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  border: 1px dashed var(--border-strong);
+}
+
+.dir-origin-note p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--ink-secondary);
+  line-height: 1.45;
+}
+
+.dir-theme-btn {
+  min-height: 36px;
 }
 
 /* ==================== FORMS & MODALS ==================== */
