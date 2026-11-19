@@ -1,5 +1,5 @@
-import { cloudSync } from '../services/CloudSync';
-import {
+import { cloudSync } from '../services/CloudSync.ts';
+import type {
   ArenaCatalogMeta,
   CompanionSummary,
   CustomDirectoryLink,
@@ -8,7 +8,7 @@ import {
   EcoAppId,
   EcosystemScope,
   ThemeMode,
-} from '../types';
+} from '../types.ts';
 
 const STORAGE_KEY = 'atelier_directory_config_v1';
 const THEME_KEY = 'umbral-theme';
@@ -16,8 +16,8 @@ const ARENA_META_KEY = 'omni_arena_catalog_meta_v1';
 
 const DEFAULT_ARENA_META: ArenaCatalogMeta = {
   version: 1,
-  total: 26,
-  academies: 8,
+  total: 33,
+  academies: 15,
   dexterity2d: 13,
   action3d: 5,
   updatedAt: 0,
@@ -41,6 +41,7 @@ export const DEFAULT_DIRECTORY_ORDER = [
   'mod-reader',
   'mod-studio',
   'mod-calligraphy',
+  'mod-drawing',
   'mod-typing',
   'mod-language',
   'mod-mindset',
@@ -108,7 +109,7 @@ export function defaultDirectoryConfig(): DirectoryConfig {
   };
 }
 
-function normalizeConfig(raw: Partial<DirectoryConfig> | null | undefined): DirectoryConfig {
+export function normalizeConfig(raw: Partial<DirectoryConfig> | null | undefined): DirectoryConfig {
   const base = defaultDirectoryConfig();
   if (!raw || typeof raw !== 'object') return base;
   const userName = (raw.userName ?? base.userName).trim() || base.userName;
@@ -501,7 +502,7 @@ export function buildCompanionSummary(
   const summary: CompanionSummary = {
     atelierHasData: false,
     atelierTodayDone: 0,
-    atelierTotalModules: 9,
+    atelierTotalModules: 10,
     atelierStreak: 0,
     docsCount: remoteDocsCount ?? 0,
     unumbralHasData: false,
@@ -547,14 +548,14 @@ export function buildCompanionSummary(
       summary.atelierStreak = Number(atelier.dailyStreak ?? atelier.streak) || 0;
       if (atelier.todayHabits && typeof atelier.todayHabits === 'object') {
         const keys = Object.keys(atelier.todayHabits);
-        summary.atelierTotalModules = keys.length || 9;
+        summary.atelierTotalModules = keys.length || 10;
         summary.atelierTodayDone =
           atelier.lastActiveDay === today
             ? Object.values(atelier.todayHabits).filter(Boolean).length
             : 0;
       } else if (atelier.dailyTasks) {
         const todayMap = atelier.dailyTasks[today] ?? {};
-        summary.atelierTotalModules = 9;
+        summary.atelierTotalModules = 10;
         summary.atelierTodayDone = Object.values(todayMap).filter(Boolean).length;
       }
     }

@@ -278,6 +278,13 @@ button {
   font-size: 0.82rem;
   font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.dir-sos-btn:hover {
+  background: color-mix(in srgb, var(--accent-calm) 18%, var(--bg-surface));
+  border-color: var(--accent-calm);
 }
 
 .dir-icon-btn {

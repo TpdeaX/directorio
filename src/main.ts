@@ -89,6 +89,16 @@ function buildTiles(): DirectoryTileDef[] {
       metric: () => '12 plantillas guiadas',
     },
     {
+      id: 'mod-drawing',
+      title: 'Taller de Dibujo',
+      prefix: 'Módulo Atelier',
+      category: 'atelier',
+      accent: '#B45309',
+      icon: Icons.palette,
+      href: resolveEcosystemAppUrl('atelier', 'drawing'),
+      metric: () => '20 láminas guiadas y lienzo',
+    },
+    {
       id: 'mod-typing',
       title: 'Mecanografía',
       prefix: 'Módulo Atelier',
@@ -146,7 +156,7 @@ function buildTiles(): DirectoryTileDef[] {
       accent: '#be185d',
       icon: Icons.mic,
       href: resolveEcosystemAppUrl('atelier', 'singing'),
-      metric: () => 'Canto, piano de 2 octavas y oído',
+      metric: () => 'Canto, 15 canciones, piano y oído',
     },
     {
       id: 'mod-calm',
@@ -156,7 +166,7 @@ function buildTiles(): DirectoryTileDef[] {
       accent: '#0f766e',
       icon: Icons.wind,
       href: resolveEcosystemAppUrl('atelier', 'calm'),
-      metric: () => 'Respiración y 12 pasos SOS',
+      metric: () => 'SOS Pánico, 5-4-3-2-1 y respiración',
     },
     {
       id: 'app-unumbral',
@@ -415,6 +425,11 @@ function renderApp(): void {
           </div>
 
           <div class="dir-topbar-actions">
+            <a class="dir-sos-btn" href="${esc(resolveEcosystemAppUrl('atelier', 'calm?sos=1'))}" title="Abrir contención inmediata SOS Pánico">
+              ${Icons.heartPulse(15)}
+              <span>SOS Pánico</span>
+            </a>
+
             <button type="button" class="dir-cloud-pill ${configured ? 'is-live' : ''} ${cloudSync.lastError ? 'is-err' : ''}" id="dir-open-cloud">
               ${Icons.cloud(15)}
               <span>${esc(cloudLabel)}</span>

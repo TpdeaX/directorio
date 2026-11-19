@@ -1,4 +1,4 @@
-import { EcosystemScope } from '../types';
+import type { EcosystemScope } from '../types.ts';
 
 export interface CloudSyncConfig {
   supabaseUrl: string;
