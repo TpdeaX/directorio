@@ -930,3 +930,137 @@ button {
     height: 68px;
   }
 }
+
+/* ==================== ECOSYSTEM QUICK TUTORIAL ==================== */
+
+.dir-tutorial-card {
+  border-left: 4px solid var(--accent-primary);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dir-tutorial-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dir-tutorial-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dir-tutorial-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent-primary) 14%, var(--bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 32%, transparent);
+  color: var(--accent-primary);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.dir-tutorial-title-wrap h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.dir-tutorial-title-wrap p {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: var(--ink-secondary);
+}
+
+.dir-tutorial-card.is-open #dir-toggle-eco-tut svg {
+  transform: rotate(180deg);
+}
+
+.dir-tutorial-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.dir-tutorial-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.dir-tutorial-step {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dir-tutorial-step-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--accent-primary);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+}
+
+.dir-tutorial-step-head strong {
+  color: var(--ink-primary);
+}
+
+.dir-tutorial-step p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.42;
+  color: var(--ink-secondary);
+}
+
+.dir-tutorial-cloud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-calm) 10%, var(--bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--accent-calm) 34%, transparent);
+}
+
+.dir-tutorial-cloud-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 240px;
+  font-size: 0.83rem;
+  line-height: 1.42;
+  color: var(--ink-secondary);
+}
+
+.dir-tutorial-cloud-copy strong {
+  display: block;
+  color: var(--ink-primary);
+  margin-bottom: 2px;
+}
+
+.dir-tutorial-cloud-icon {
+  color: var(--accent-calm);
+  display: inline-flex;
+  margin-top: 2px;
+  flex-shrink: 0;
+}

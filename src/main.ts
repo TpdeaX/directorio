@@ -33,6 +33,13 @@ let showHidden = false;
 let activeModal: 'none' | 'cloud' | 'profile' = 'none';
 let cloudStatusMsg = '';
 let showSql = false;
+let showEcoTutorial = (() => {
+  try {
+    return typeof sessionStorage !== 'undefined' && sessionStorage.getItem('dir-eco-tut-open') === '1';
+  } catch {
+    return false;
+  }
+})();
 let remoteScopes: Partial<Record<EcosystemScope, { payload: unknown; updated_at: number }>> = {};
 let remoteDocsCount: number | null = null;
 
@@ -86,7 +93,7 @@ function buildTiles(): DirectoryTileDef[] {
       accent: '#d97706',
       icon: Icons.pen,
       href: resolveEcosystemAppUrl('atelier', 'calligraphy'),
-      metric: () => '12 plantillas guiadas',
+      metric: () => '96 plantillas guiadas',
     },
     {
       id: 'mod-drawing',
@@ -96,7 +103,7 @@ function buildTiles(): DirectoryTileDef[] {
       accent: '#B45309',
       icon: Icons.palette,
       href: resolveEcosystemAppUrl('atelier', 'drawing'),
-      metric: () => '20 láminas guiadas y lienzo',
+      metric: () => '56+ láminas y refs de Internet',
     },
     {
       id: 'mod-typing',
@@ -116,7 +123,7 @@ function buildTiles(): DirectoryTileDef[] {
       accent: '#0891b2',
       icon: Icons.spell,
       href: resolveEcosystemAppUrl('atelier', 'language'),
-      metric: () => '40+ reglas y glosario',
+      metric: () => '80+ reglas y glosario',
     },
     {
       id: 'mod-mindset',
@@ -156,7 +163,7 @@ function buildTiles(): DirectoryTileDef[] {
       accent: '#be185d',
       icon: Icons.mic,
       href: resolveEcosystemAppUrl('atelier', 'singing'),
-      metric: () => 'Canto, 15 canciones, piano y oído',
+      metric: () => '34+ canciones, piano y oído',
     },
     {
       id: 'mod-calm',
@@ -465,6 +472,56 @@ function renderApp(): void {
           </div>
         </section>
 
+        <section class="dir-card dir-tutorial-card ${showEcoTutorial ? 'is-open' : ''}" aria-label="Tutorial rápido del Ecosistema">
+          <div class="dir-tutorial-head">
+            <div class="dir-tutorial-title-wrap">
+              <span class="dir-tutorial-icon">${Icons.bookOpen(18)}</span>
+              <div>
+                <h2>Tutorial rápido del Ecosistema (4 pasos)</h2>
+                <p>Qué hace cada app y cómo sincronizar tus datos en la nube con Supabase.</p>
+              </div>
+            </div>
+            <button type="button" class="dir-btn dir-btn-sm" id="dir-toggle-eco-tut" aria-expanded="${showEcoTutorial ? 'true' : 'false'}">
+              <span>${showEcoTutorial ? 'Ocultar tutorial' : 'Abrir tutorial'}</span>
+              ${Icons.chevronDown(14)}
+            </button>
+          </div>
+          ${
+            showEcoTutorial
+              ? `<div class="dir-tutorial-body">
+                  <div class="dir-tutorial-steps">
+                    <div class="dir-tutorial-step">
+                      <div class="dir-tutorial-step-head">${Icons.grid(16)}<strong>1. Directorio</strong></div>
+                      <p>Portal central del ecosistema. Personaliza el orden de tus tarjetas, fija tus favoritos arriba, agrega enlaces propios y vigila tu pulso diario.</p>
+                    </div>
+                    <div class="dir-tutorial-step">
+                      <div class="dir-tutorial-step-head">${Icons.bookOpen(16)}<strong>2. Atelier Diario</strong></div>
+                      <p>Taller práctico con Cuaderno/PDF, Lectura, Caligrafía (96 plantillas), Dibujo conectado a Internet y calco (56+ láminas), Mecanografía, Léxico (80+ reglas), Oratoria y Canto (34+ canciones).</p>
+                    </div>
+                    <div class="dir-tutorial-step">
+                      <div class="dir-tutorial-step-head">${Icons.graduation(16)}<strong>3. UNUmbral</strong></div>
+                      <p>Organizador universitario para ciclos, cursos, evaluaciones ponderadas, horarios de clase y seguimiento de tareas académicas.</p>
+                    </div>
+                    <div class="dir-tutorial-step">
+                      <div class="dir-tutorial-step-head">${Icons.omni(16)}<strong>4. OMNI ARENA</strong></div>
+                      <p>Entrenamiento 2D/3D con 33 disciplinas, 15 academias guiadas (Música, Estrategia e IQ), 5 dificultades, Modo Infinito y radar de 5 ejes.</p>
+                    </div>
+                  </div>
+                  <div class="dir-tutorial-cloud">
+                    <div class="dir-tutorial-cloud-copy">
+                      <span class="dir-tutorial-cloud-icon">${Icons.cloud(16)}</span>
+                      <div>
+                        <strong>Sincronización en la nube (Supabase):</strong>
+                        <span>Pulsa <em>${configured ? `Supabase · ${esc(syncCfg.spaceCode)}` : 'Conectar Supabase'}</em> arriba para guardar tu URL, Anon Key y Código de espacio, o usa <em>Copiar / Pegar llave rápida</em> para vincular Atelier, UNUmbral y OMNI ARENA en segundos.</span>
+                      </div>
+                    </div>
+                    <button type="button" class="dir-btn dir-btn-primary dir-btn-sm" data-open-cloud>${Icons.cloud(14)}<span>${configured ? 'Revisar Nube' : 'Activar Nube'}</span></button>
+                  </div>
+                </div>`
+              : ''
+          }
+        </section>
+
         <section class="dir-toolbar">
           <div class="dir-filter-tabs" role="tablist">
             ${tabs
@@ -640,6 +697,17 @@ function renderApp(): void {
 function bindEvents(): void {
   root.querySelector('#dir-open-cloud')?.addEventListener('click', () => {
     activeModal = 'cloud';
+    renderApp();
+  });
+  root.querySelector('#dir-toggle-eco-tut')?.addEventListener('click', () => {
+    showEcoTutorial = !showEcoTutorial;
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('dir-eco-tut-open', showEcoTutorial ? '1' : '0');
+      }
+    } catch {
+      // ignore storage errors
+    }
     renderApp();
   });
   root.querySelectorAll<HTMLButtonElement>('[data-open-cloud]').forEach((btn) => {
