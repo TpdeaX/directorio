@@ -30,10 +30,18 @@ interface DirectoryTileDef {
   isCustom?: boolean;
 }
 
+const DOMAIN_LABELS: Record<Exclude<DirectoryCategory, 'all'>, string> = {
+  atelier: 'Atelier',
+  universidad: 'UNUmbral',
+  entrenamiento: 'OMNI ARENA',
+  personal: 'Personal',
+};
+
 const root = document.getElementById('app')!;
 let editMode = false;
 let showAddForm = false;
 let showHidden = false;
+let searchQuery = '';
 let activeModal: 'none' | 'cloud' | 'profile' = 'none';
 let cloudStatusMsg = '';
 let showSql = false;
@@ -73,9 +81,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-compass',
       title: 'Brújula Personal',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#7c3aed',
+      accent: '#7b2cbf',
       icon: Icons.compass,
       href: resolveEcosystemAppUrl('atelier', 'compass'),
       metric: () => 'Diario 3 min, Rueda, Metas 90d y Anti-hábitos',
@@ -83,9 +91,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-studio',
       title: 'Cuaderno y PDF',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#15803d',
+      accent: '#9a6b12',
       icon: Icons.tablet,
       href: resolveEcosystemAppUrl('atelier', 'studio'),
       metric: (s) => `${s.docsCount} ${s.docsCount === 1 ? 'documento' : 'documentos'}`,
@@ -93,9 +101,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-reader',
       title: 'Biblioteca y RSVP',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#2563eb',
+      accent: '#9a6b12',
       icon: Icons.book,
       href: resolveEcosystemAppUrl('atelier', 'reader'),
       metric: () => 'Clásicos, lectura rápida WPM y síntesis',
@@ -103,9 +111,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-calligraphy',
       title: 'Taller de Caligrafía',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#d97706',
+      accent: '#9a6b12',
       icon: Icons.pen,
       href: resolveEcosystemAppUrl('atelier', 'calligraphy'),
       metric: () => '128 plantillas guiadas',
@@ -113,9 +121,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-drawing',
       title: 'Taller de Dibujo',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#B45309',
+      accent: '#9a6b12',
       icon: Icons.palette,
       href: resolveEcosystemAppUrl('atelier', 'drawing'),
       metric: () => '56 láminas + 12 retos',
@@ -123,9 +131,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-typing',
       title: 'Mecanografía',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#475569',
+      accent: '#9a6b12',
       icon: Icons.keyboard,
       href: resolveEcosystemAppUrl('atelier', 'typing'),
       metric: () => 'Teclado visual y adaptativo',
@@ -133,9 +141,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-language',
       title: 'Ortografía y Léxico',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#0891b2',
+      accent: '#9a6b12',
       icon: Icons.spell,
       href: resolveEcosystemAppUrl('atelier', 'language'),
       metric: () => '96 reglas, examen y léxico',
@@ -143,9 +151,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-mindset',
       title: 'Criterio y Creatividad',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#ca8a04',
+      accent: '#9a6b12',
       icon: Icons.bulb,
       href: resolveEcosystemAppUrl('atelier', 'mindset'),
       metric: () => 'Frases, SCAMPER y pensamiento lateral',
@@ -153,9 +161,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-focuslab',
       title: 'Oratoria, SM-2 y Feynman',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#0f766e',
+      accent: '#9a6b12',
       icon: Icons.mic,
       href: resolveEcosystemAppUrl('atelier', 'focuslab'),
       metric: () => 'Muletillas, repetición espaciada y recall',
@@ -163,9 +171,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-singing',
       title: 'Estudio de Canto',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#be185d',
+      accent: '#9a6b12',
       icon: Icons.mic,
       href: resolveEcosystemAppUrl('atelier', 'singing'),
       metric: () => '34+ canciones, piano y oído',
@@ -173,9 +181,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-calm',
       title: 'Centro de Calma',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#0f766e',
+      accent: '#2d6a4f',
       icon: Icons.wind,
       href: resolveEcosystemAppUrl('atelier', 'calm'),
       metric: () => 'SOS Pánico, 5-4-3-2-1 y respiración',
@@ -183,9 +191,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-critical',
       title: 'Pensamiento Crítico',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#3730A3',
+      accent: '#9a6b12',
       icon: Icons.scale,
       href: resolveEcosystemAppUrl('atelier', 'critical'),
       metric: () => '18 sesgos/falacias y matriz ponderada',
@@ -193,9 +201,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-writing',
       title: 'Escritura Clara',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#0F766E',
+      accent: '#9a6b12',
       icon: Icons.feather,
       href: resolveEcosystemAppUrl('atelier', 'writing'),
       metric: () => 'Síntesis y analizador en vivo',
@@ -203,9 +211,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-finance',
       title: 'Finanzas y Ahorro',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#047857',
+      accent: '#9a6b12',
       icon: Icons.wallet,
       href: resolveEcosystemAppUrl('atelier', 'finance'),
       metric: () => '50/30/20, metas e interés compuesto',
@@ -213,9 +221,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-vitality',
       title: 'Postura Pro y Energía',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#0284C7',
+      accent: '#9a6b12',
       icon: Icons.activity,
       href: resolveEcosystemAppUrl('atelier', 'vitality'),
       metric: () => 'Monitor webcam, mapa corporal, 21d y nutrición',
@@ -223,9 +231,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-career',
       title: 'Social y Carrera',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#0369a1',
+      accent: '#9a6b12',
       icon: Icons.briefcase,
       href: resolveEcosystemAppUrl('atelier', 'career'),
       metric: () => 'Negociación, entrevistas STAR y Brag Doc',
@@ -233,9 +241,9 @@ function buildTiles(): DirectoryTileDef[] {
     {
       id: 'mod-guides',
       title: 'Rutas y YouTube',
-      prefix: 'Módulo Atelier',
+      prefix: 'Atelier Diario',
       category: 'atelier',
-      accent: '#dc2626',
+      accent: '#9a6b12',
       icon: Icons.playCircle,
       href: resolveEcosystemAppUrl('atelier', 'guides'),
       metric: () => 'Origami, dibujo, caligrafía y rutas YouTube',
@@ -245,20 +253,20 @@ function buildTiles(): DirectoryTileDef[] {
       title: 'UNUmbral Académico',
       prefix: 'App Universidad',
       category: 'universidad',
-      accent: '#1d4ed8',
+      accent: '#4d6b4a',
       icon: Icons.graduation,
       href: resolveEcosystemAppUrl('unumbral'),
       metric: (s) =>
         s.unumbralHasData
           ? `${s.unumbralCourses} cursos · ${s.unumbralPendingTasks} tareas`
-          : 'Horario, cursos y notas',
+          : 'Horario 12h, cursos, notas y asistencia',
     },
     {
       id: 'app-neurolab',
       title: 'NeuroNation++ Lab',
       prefix: 'OMNI ARENA · Cognitivo',
       category: 'entrenamiento',
-      accent: '#4f46e5',
+      accent: '#335c7d',
       icon: Icons.brain,
       href: resolveEcosystemAppUrl('arena', 'neurolab'),
       metric: (s) =>
@@ -271,7 +279,7 @@ function buildTiles(): DirectoryTileDef[] {
       title: 'OMNI ARENA 2D/3D',
       prefix: 'App Entrenamiento',
       category: 'entrenamiento',
-      accent: '#7c3aed',
+      accent: '#335c7d',
       icon: Icons.gamepad,
       href: resolveEcosystemAppUrl('arena'),
       metric: (s) => {
@@ -288,10 +296,10 @@ function buildTiles(): DirectoryTileDef[] {
     title: c.title,
     prefix: c.subtitle || 'Acceso Personal',
     category: c.category,
-    accent: c.accent || '#0284c7',
+    accent: c.accent || '#7b2cbf',
     icon: customIcon(c.iconKey),
     href: c.url,
-    metric: () => 'Enlace guardado en Supabase',
+    metric: () => 'Enlace sincronizado en Supabase',
     isCustom: true,
   }));
 
@@ -440,16 +448,20 @@ function renderEcoSwitch(): string {
   return `
     <nav class="eco-switch" aria-label="Aplicaciones del ecosistema">
       <a class="eco-switch-link is-current" data-eco-app="directorio" aria-current="page" href="${esc(resolveEcoUrl('directorio'))}">
-        ${Icons.grid(16)}<span class="eco-label-full">Directorio</span><span class="eco-label-short">Directorio</span>
+        <span class="eco-swatch is-dir" aria-hidden="true"></span>
+        <span class="eco-label-full">Directorio</span><span class="eco-label-short">Directorio</span>
       </a>
       <a class="eco-switch-link" data-eco-app="atelier" href="${esc(resolveEcoUrl('atelier'))}">
-        ${Icons.bookOpen(16)}<span class="eco-label-full">Atelier Diario</span><span class="eco-label-short">Atelier</span>
+        <span class="eco-swatch is-atelier" aria-hidden="true"></span>
+        <span class="eco-label-full">Atelier Diario</span><span class="eco-label-short">Atelier</span>
       </a>
       <a class="eco-switch-link" data-eco-app="unumbral" href="${esc(resolveEcoUrl('unumbral'))}">
-        ${Icons.graduation(16)}<span class="eco-label-full">UNUmbral</span><span class="eco-label-short">UNUmbral</span>
+        <span class="eco-swatch is-unu" aria-hidden="true"></span>
+        <span class="eco-label-full">UNUmbral</span><span class="eco-label-short">UNUmbral</span>
       </a>
       <a class="eco-switch-link" data-eco-app="arena" href="${esc(resolveEcoUrl('arena'))}">
-        ${Icons.omni(16)}<span class="eco-label-full">OMNI ARENA</span><span class="eco-label-short">Arena</span>
+        <span class="eco-swatch is-arena" aria-hidden="true"></span>
+        <span class="eco-label-full">OMNI ARENA</span><span class="eco-label-short">Arena</span>
       </a>
     </nav>
   `;
@@ -463,28 +475,8 @@ function renderDailyRouteCard(summary: CompanionSummary): string {
   return `
     <section class="dir-card dir-daily-route-card ${allDone ? 'is-complete' : ''}" aria-label="Ruta de Hoy, bloque de 15 minutos">
       <div class="dir-route-head">
-        <div class="dir-route-title-wrap">
-          <span class="dir-route-icon">${Icons.clock(18)}</span>
-          <div>
-            <div class="dir-route-kicker">
-              <span class="dir-route-pill">${esc(plan.periodLabel)} · ${plan.totalMinutes} min</span>
-              <span class="dir-route-count">${plan.completedCount}/${plan.steps.length} completados</span>
-            </div>
-            <h2>Ruta de Hoy · Bloque de 15 min</h2>
-            <p>Secuencia guiada de 3 pasos para avanzar sin parálisis de elección.</p>
-          </div>
-        </div>
-
-        <div class="dir-route-head-actions">
-          ${
-            plan.nextStep
-              ? `<a class="dir-btn dir-btn-primary dir-route-cta" href="${esc(plan.nextStep.href)}" title="Ir a ${esc(plan.nextStep.title)}">
-                  <span>Empezar paso siguiente</span>
-                  ${Icons.arrowRight(15)}
-                </a>`
-              : `<span class="dir-route-done-badge">${Icons.check(15)}<span>Bloque de 15 min completado</span></span>`
-          }
-        </div>
+        <h2>Ruta de Hoy · ${plan.totalMinutes} min</h2>
+        <span class="dir-route-meta-tag">${esc(plan.periodLabel)} · ${plan.completedCount}/${plan.steps.length}</span>
       </div>
 
       <div class="dir-route-progress" role="progressbar" aria-valuemin="0" aria-valuemax="${plan.steps.length}" aria-valuenow="${plan.completedCount}" aria-label="Progreso de la Ruta de Hoy">
@@ -495,40 +487,44 @@ function renderDailyRouteCard(summary: CompanionSummary): string {
         ${plan.steps
           .map((step) => {
             const isNext = plan.nextStep?.id === step.id;
+            const numLabel = `0${step.order}`;
             return `
-              <article class="dir-route-step ${step.done ? 'is-done' : ''} ${isNext ? 'is-next' : ''}" style="--step-accent: ${step.accent};">
-                <div class="dir-route-step-top">
-                  <button
-                    type="button"
-                    class="dir-route-check ${step.done ? 'is-checked' : ''}"
-                    data-route-toggle="${step.id}"
-                    role="checkbox"
-                    aria-checked="${step.done ? 'true' : 'false'}"
-                    aria-label="Marcar paso ${step.order} (${esc(step.title)}) como ${step.done ? 'pendiente' : 'completado'}"
-                    title="${step.done ? 'Desmarcar paso' : 'Marcar paso completado'}"
-                  >
-                    ${step.done ? Icons.check(13) : ''}
-                  </button>
-                  <div class="dir-route-step-meta">
-                    <span class="dir-route-step-badge">Paso ${step.order} · ${step.minutes} min</span>
-                    <span class="dir-route-step-pillar">${esc(step.pillar)}</span>
-                  </div>
-                </div>
+              <article class="dir-route-step ${step.done ? 'is-done' : ''} ${isNext ? 'is-next' : ''}">
+                <button
+                  type="button"
+                  class="dir-route-check ${step.done ? 'is-checked' : ''}"
+                  data-route-toggle="${step.id}"
+                  role="checkbox"
+                  aria-checked="${step.done ? 'true' : 'false'}"
+                  aria-label="Marcar control ${step.order} (${esc(step.title)}) como ${step.done ? 'pendiente' : 'completado'}"
+                  title="${step.done ? 'Desmarcar control' : 'Marcar control completado'}"
+                >
+                  ${step.done ? Icons.check(15) : numLabel}
+                </button>
                 <div class="dir-route-step-body">
                   <h3>${esc(step.title)}</h3>
-                  <p>${esc(step.subtitle)}</p>
+                  <p>${esc(step.pillar)} · ${step.minutes} min · ${esc(step.subtitle)}</p>
                 </div>
-                <div class="dir-route-step-foot">
-                  <a class="dir-route-step-link" href="${esc(step.href)}">
-                    <span>${esc(step.cta)}</span>
-                    ${Icons.arrowRight(13)}
-                  </a>
-                  ${isNext ? '<span class="dir-route-next-tag">Siguiente</span>' : ''}
-                </div>
+                <a class="dir-route-step-action" href="${esc(step.href)}" title="${esc(step.cta)}">
+                  <span>${step.done ? 'LISTO' : isNext ? 'Iniciar' : 'Abrir'}</span>
+                  ${step.done ? '' : Icons.arrowRight(13)}
+                </a>
               </article>
             `;
           })
           .join('')}
+      </div>
+
+      <div class="dir-route-foot">
+        ${
+          plan.nextStep
+            ? `<span class="dir-route-meta-tag">Siguiente control: ${esc(plan.nextStep.title)}</span>
+               <a class="dir-btn dir-btn-primary dir-btn-sm" href="${esc(plan.nextStep.href)}">
+                 <span>Continuar</span>
+                 ${Icons.arrowRight(14)}
+               </a>`
+            : `<span class="dir-route-done-badge">${Icons.check(15)}<span>Bloque de 15 min completado</span></span>`
+        }
       </div>
     </section>
   `;
@@ -537,21 +533,31 @@ function renderDailyRouteCard(summary: CompanionSummary): string {
 function renderApp(): void {
   const theme = directoryStore.getTheme();
   document.documentElement.setAttribute('data-theme', theme);
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) {
+    metaTheme.setAttribute('content', theme === 'night' ? '#0F1311' : '#FAFBF8');
+  }
+
   const dir = directoryStore.get();
   const syncCfg = cloudSync.getConfig();
   const configured = cloudSync.isConfigured();
   const cloudLabel = configured
     ? cloudSync.lastError
-      ? 'Nube con aviso'
+      ? 'Nube aviso'
       : `Supabase · ${syncCfg.spaceCode}`
-    : 'Conectar Supabase';
+    : 'Supabase';
 
   const summary = buildCompanionSummary(remoteScopes, remoteDocsCount);
   const tiles = buildTiles();
+  const q = searchQuery.trim().toLowerCase();
   const visible = tiles.filter((t) => {
     const isHidden = dir.hiddenIds.includes(t.id);
     if (!editMode && !showHidden && isHidden) return false;
     if (dir.activeCategory !== 'all' && t.category !== dir.activeCategory) return false;
+    if (q) {
+      const hay = `${t.title} ${t.prefix} ${t.metric(summary)} ${DOMAIN_LABELS[t.category]}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     return true;
   });
 
@@ -563,15 +569,21 @@ function renderApp(): void {
 
   const atelierCount = tiles.filter((t) => t.category === 'atelier').length;
   const tabs: { id: DirectoryCategory; label: string }[] = [
-    { id: 'all', label: 'Todo el ecosistema' },
-    { id: 'atelier', label: `Atelier Diario (${atelierCount})` },
+    { id: 'all', label: `Todos (${tiles.length})` },
+    { id: 'atelier', label: `Atelier (${atelierCount})` },
     { id: 'universidad', label: 'Universidad' },
-    { id: 'entrenamiento', label: 'Entrenamiento' },
+    { id: 'entrenamiento', label: 'Arena & NeuroLab' },
     { id: 'personal', label: 'Mis Accesos' },
   ];
 
+  const todayLabel = new Intl.DateTimeFormat('es-PE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date());
+
   const emptyOriginNote =
-    'Sin datos de esta app en este origen. Abre el ecosistema publicado o activa la Nube para verlos aquí.';
+    'Sin datos de esta app en este origen. Abre la app o conecta Supabase para ver el pulso en vivo.';
 
   root.innerHTML = `
     <div class="dir-shell">
@@ -579,8 +591,8 @@ function renderApp(): void {
       <header class="dir-topbar">
         <div class="dir-topbar-main">
           <div class="dir-brand">
-            <span class="dir-brand-emblem">
-              <span class="dir-brand-emblem-core">${Icons.grid(18)}</span>
+            <span class="dir-start-mark" aria-hidden="true">
+              <span class="dir-start-tri"></span>
             </span>
             <div class="dir-brand-copy">
               <span class="dir-brand-name">${esc(dir.ecosystemTitle)}</span>
@@ -589,19 +601,14 @@ function renderApp(): void {
           </div>
 
           <div class="dir-topbar-actions">
-            <a class="dir-sos-btn" href="${esc(resolveEcosystemAppUrl('atelier', 'calm?sos=1'))}" title="Abrir contención inmediata SOS Pánico">
-              ${Icons.heartPulse(15)}
-              <span>SOS Pánico</span>
-            </a>
-
             <button type="button" class="dir-cloud-pill ${configured ? 'is-live' : ''} ${cloudSync.lastError ? 'is-err' : ''}" id="dir-open-cloud">
-              ${Icons.cloud(15)}
+              ${Icons.cloud(14)}
               <span>${esc(cloudLabel)}</span>
             </button>
 
             <button type="button" class="dir-btn dir-btn-sm dir-theme-btn" id="dir-theme-toggle" title="${theme === 'day' ? 'Cambiar a modo noche' : 'Cambiar a modo día'}" aria-pressed="${theme === 'night'}">
-              ${theme === 'day' ? Icons.moon(16) : Icons.sun(16)}
-              <span>${theme === 'day' ? 'Tema: Día' : 'Tema: Noche'}</span>
+              ${theme === 'day' ? Icons.moon(15) : Icons.sun(15)}
+              <span>${theme === 'day' ? 'Día' : 'Noche'}</span>
             </button>
 
             <button type="button" class="dir-profile-chip" id="dir-open-profile" title="Editar perfil y enlaces">
@@ -610,48 +617,48 @@ function renderApp(): void {
                 <strong>${esc(dir.userName)}</strong>
                 <small>${esc(dir.userSubtitle)}</small>
               </span>
-              ${Icons.chevronDown(14)}
+              ${Icons.chevronDown(13)}
             </button>
+
+            <a class="dir-sos-btn" href="${esc(resolveEcosystemAppUrl('atelier', 'calm?sos=1'))}" title="Abrir contención inmediata SOS Pánico">
+              ${Icons.heartPulse(14)}
+              <span>SOS Calma</span>
+            </a>
           </div>
         </div>
       </header>
 
       <main class="dir-main">
-        <section class="dir-hero-strip" aria-label="Resumen del ecosistema">
-          <div class="dir-hero-copy">
-            <h1>Ecosistema Personal</h1>
-            <p>Tus módulos de estudio, organización universitaria y entrenamiento cognitivo sincronizados en un solo lugar.</p>
+        <aside class="dir-course-col" aria-label="Curso activo de hoy">
+          <div class="dir-course-header">
+            <h1>Curso de Hoy</h1>
+            <span class="dir-course-pill">${esc(todayLabel)}</span>
           </div>
-          <div class="dir-hero-kpis">
-            <div class="dir-kpi"><span>Atelier Hoy</span><strong>${summary.atelierHasData ? `${summary.atelierTodayDone}/${summary.atelierTotalModules}` : '--'}</strong></div>
-            <div class="dir-kpi"><span>Cursos UNU</span><strong>${summary.unumbralHasData ? summary.unumbralCourses : '--'}</strong></div>
-            <div class="dir-kpi"><span>OMNI ARENA</span><strong>${summary.arenaHasData ? esc(summary.arenaRank) : '--'}</strong></div>
-            <div class="dir-kpi"><span>NeuroScore</span><strong>${summary.arenaNeuroScore !== null ? summary.arenaNeuroScore : '--'}</strong></div>
-          </div>
-        </section>
 
-        ${renderDailyRouteCard(summary)}
+          ${renderDailyRouteCard(summary)}
 
-        <section class="dir-cockpit-grid" aria-label="Continuar donde lo dejaste y recomendaciones del día">
-          <article class="dir-card dir-cockpit-card">
-            <div class="dir-card-head">
+          <section class="dir-active-leg" aria-label="Donde lo dejaste">
+            <div class="dir-leg-head">
               <h2>Donde lo dejaste</h2>
-              <span class="dir-empty">Sincronizado</span>
+              <span class="dir-leg-time">${summary.atelierResume ? esc(summary.atelierResume.timeLabel) : 'Listo'}</span>
             </div>
             ${
               summary.atelierResume
                 ? `
               <div class="dir-cockpit-resume">
-                <span class="dir-empty">${esc(summary.atelierResume.timeLabel)}</span>
                 <strong>${esc(summary.atelierResume.label)}</strong>
                 <p>${esc(summary.atelierResume.detail)}</p>
-                <a class="dir-btn dir-btn-primary dir-btn-sm" href="${esc(summary.atelierResume.href)}">Continuar donde lo dejaste</a>
+                <div>
+                  <a class="dir-btn dir-btn-primary dir-btn-sm" href="${esc(summary.atelierResume.href)}">Retomar sesión ${Icons.arrowRight(14)}</a>
+                </div>
               </div>`
                 : `
               <div class="dir-cockpit-resume">
                 <strong>Sin sesión reciente registrada</strong>
-                <p>Abre cualquier taller de Atelier Diario y aquí aparecerá exactamente dónde te quedaste.</p>
-                <a class="dir-btn dir-btn-primary dir-btn-sm" href="${esc(resolveEcoUrl('atelier'))}">Abrir Atelier Diario</a>
+                <p>Abre cualquier taller de Atelier Diario y aquí aparecerá tu punto exacto de retorno.</p>
+                <div>
+                  <a class="dir-btn dir-btn-primary dir-btn-sm" href="${esc(resolveEcoUrl('atelier'))}">Abrir Atelier Diario ${Icons.arrowRight(14)}</a>
+                </div>
               </div>`
             }
             ${
@@ -664,12 +671,19 @@ function renderApp(): void {
                     .join('')}</div>`
                 : ''
             }
-          </article>
+          </section>
 
-          <article class="dir-card dir-cockpit-card">
+          <section class="dir-hero-kpis" aria-label="Métricas del ecosistema">
+            <div class="dir-kpi"><span>Atelier Hoy</span><strong>${summary.atelierHasData ? `${summary.atelierTodayDone}/${summary.atelierTotalModules}` : '--'}</strong></div>
+            <div class="dir-kpi"><span>Cursos UNU</span><strong>${summary.unumbralHasData ? summary.unumbralCourses : '--'}</strong></div>
+            <div class="dir-kpi"><span>OMNI ARENA</span><strong>${summary.arenaHasData ? esc(summary.arenaRank) : '--'}</strong></div>
+            <div class="dir-kpi"><span>NeuroScore</span><strong>${summary.arenaNeuroScore !== null ? summary.arenaNeuroScore : '--'}</strong></div>
+          </section>
+
+          <article class="dir-card">
             <div class="dir-card-head">
               <h2>Pendientes y a medias (${summary.pendingItems.length})</h2>
-              <span class="dir-empty">Retoma al instante</span>
+              <span class="dir-route-meta-tag">Retomar</span>
             </div>
             <div class="dir-cockpit-list">
               ${
@@ -687,15 +701,15 @@ function renderApp(): void {
                     </a>`
                       )
                       .join('')
-                  : '<p class="dir-empty" style="margin:0;">Sin pendientes a medias en este momento. Todo está al día.</p>'
+                  : '<p class="dir-empty" style="margin:0;">Sin pendientes a medias en este momento.</p>'
               }
             </div>
           </article>
 
-          <article class="dir-card dir-cockpit-card">
+          <article class="dir-card">
             <div class="dir-card-head">
-              <h2>Recomendado para hoy</h2>
-              <span class="dir-empty">Según tu avance y hora</span>
+              <h2>Recomendado ahora</h2>
+              <span class="dir-route-meta-tag">Según hora</span>
             </div>
             <div class="dir-cockpit-list">
               ${summary.recommendedItems
@@ -713,228 +727,247 @@ function renderApp(): void {
                 .join('')}
             </div>
           </article>
-        </section>
+        </aside>
 
-        <section class="dir-card dir-tutorial-card ${showEcoTutorial ? 'is-open' : ''}" aria-label="Tutorial rápido del Ecosistema">
-          <div class="dir-tutorial-head">
-            <div class="dir-tutorial-title-wrap">
-              <span class="dir-tutorial-icon">${Icons.bookOpen(18)}</span>
-              <div>
-                <h2>Tutorial rápido del Ecosistema (4 pasos)</h2>
-                <p>Qué hace cada app y cómo sincronizar tus datos en la nube con Supabase.</p>
+        <section class="dir-terrain-col" aria-label="Catálogo del ecosistema">
+          <div class="dir-toolbar">
+            <div class="dir-filter-tabs" role="tablist">
+              ${tabs
+                .map(
+                  (t) => `
+                <button type="button" class="dir-tab ${dir.activeCategory === t.id ? 'is-active' : ''}" data-cat="${t.id}" role="tab" aria-selected="${dir.activeCategory === t.id ? 'true' : 'false'}">
+                  ${t.label}
+                </button>`
+                )
+                .join('')}
+            </div>
+
+            <div class="dir-toolbar-right">
+              <div class="dir-search-wrap">
+                <input
+                  type="search"
+                  id="dir-search"
+                  class="dir-search-input"
+                  value="${esc(searchQuery)}"
+                  placeholder="Buscar módulo..."
+                  aria-label="Buscar módulo o acceso"
+                />
+                ${
+                  searchQuery
+                    ? `<button type="button" class="dir-search-clear" id="dir-clear-search" aria-label="Limpiar búsqueda">${Icons.closeX(13)}</button>`
+                    : `<span class="dir-search-kbd" aria-hidden="true">/</span>`
+                }
               </div>
-            </div>
-            <button type="button" class="dir-btn dir-btn-sm" id="dir-toggle-eco-tut" aria-expanded="${showEcoTutorial ? 'true' : 'false'}">
-              <span>${showEcoTutorial ? 'Ocultar tutorial' : 'Abrir tutorial'}</span>
-              ${Icons.chevronDown(14)}
-            </button>
-          </div>
-          ${
-            showEcoTutorial
-              ? `<div class="dir-tutorial-body">
-                  <div class="dir-tutorial-steps">
-                    <div class="dir-tutorial-step">
-                      <div class="dir-tutorial-step-head">${Icons.grid(16)}<strong>1. Directorio</strong></div>
-                      <p>Portal central del ecosistema. Personaliza el orden de tus tarjetas, fija tus favoritos arriba, agrega enlaces propios y vigila tu pulso diario.</p>
-                    </div>
-                    <div class="dir-tutorial-step">
-                      <div class="dir-tutorial-step-head">${Icons.bookOpen(16)}<strong>2. Atelier Diario</strong></div>
-                      <p>Taller práctico con Brújula Personal, Cuaderno/PDF, Biblioteca RSVP, Caligrafía, Dibujo, Postura Pro, Social y Carrera, Rutas YouTube, Oratoria SM-2/Feynman y Canto.</p>
-                    </div>
-                    <div class="dir-tutorial-step">
-                      <div class="dir-tutorial-step-head">${Icons.graduation(16)}<strong>3. UNUmbral</strong></div>
-                      <p>Organizador universitario para ciclos, cursos, evaluaciones ponderadas, horarios de clase y seguimiento de tareas académicas.</p>
-                    </div>
-                    <div class="dir-tutorial-step">
-                      <div class="dir-tutorial-step-head">${Icons.omni(16)}<strong>4. OMNI ARENA</strong></div>
-                      <p>Entrenamiento 2D/3D con 40 disciplinas, 22 academias guiadas, NeuroNation++ Lab (test cognitivo y sesión diaria), 5 dificultades y radar de 5 ejes.</p>
-                    </div>
-                  </div>
-                  <div class="dir-tutorial-cloud">
-                    <div class="dir-tutorial-cloud-copy">
-                      <span class="dir-tutorial-cloud-icon">${Icons.cloud(16)}</span>
-                      <div>
-                        <strong>Sincronización en la nube (Supabase):</strong>
-                        <span>Pulsa <em>${configured ? `Supabase · ${esc(syncCfg.spaceCode)}` : 'Conectar Supabase'}</em> arriba para guardar tu URL, Anon Key y Código de espacio, o usa <em>Copiar / Pegar llave rápida</em> para vincular Atelier, UNUmbral y OMNI ARENA en segundos.</span>
-                      </div>
-                    </div>
-                    <button type="button" class="dir-btn dir-btn-primary dir-btn-sm" data-open-cloud>${Icons.cloud(14)}<span>${configured ? 'Revisar Nube' : 'Activar Nube'}</span></button>
-                  </div>
-                </div>`
-              : ''
-          }
-        </section>
-
-        <section class="dir-toolbar">
-          <div class="dir-filter-tabs" role="tablist">
-            ${tabs
-              .map(
-                (t) => `
-              <button type="button" class="dir-tab ${dir.activeCategory === t.id ? 'is-active' : ''}" data-cat="${t.id}">
-                ${t.label}
-              </button>`
-              )
-              .join('')}
-          </div>
-
-          <div class="dir-toolbar-actions">
-            <button type="button" class="dir-btn" id="dir-toggle-add">${Icons.plus(15)}<span>Nuevo acceso</span></button>
-            <button type="button" class="dir-btn ${editMode ? 'dir-btn-primary' : ''}" id="dir-toggle-edit">
-              ${Icons.sliders(15)}<span>${editMode ? 'Listo' : 'Personalizar'}</span>
-            </button>
-          </div>
-        </section>
-
-        ${
-          showAddForm
-            ? `
-          <form class="dir-card dir-form" id="dir-add-link-form">
-            <div class="dir-card-head">
-              <h2>Agregar acceso directo al Directorio (se guarda en Supabase)</h2>
-              <button type="button" class="dir-btn dir-btn-sm" id="dir-cancel-add">Cerrar</button>
-            </div>
-            <div class="dir-preset-row">
-              <span class="dir-preset-label">Plantilla rápida:</span>
-              <button type="button" class="dir-preset-chip" id="dir-preset-workout">
-                ${Icons.dumbbell(14)}
-                <span>Plantilla: Mi app de ejercicio en casa</span>
+              <button type="button" class="dir-btn dir-btn-sm" id="dir-toggle-add">${Icons.plus(14)}<span>Nuevo acceso</span></button>
+              <button type="button" class="dir-btn dir-btn-sm ${editMode ? 'dir-btn-primary' : ''}" id="dir-toggle-edit">
+                ${Icons.sliders(14)}<span>${editMode ? 'Listo' : 'Personalizar'}</span>
               </button>
             </div>
-            <div class="dir-custom-form-grid">
-              <label>
-                <span>Nombre del módulo o enlace</span>
-                <input type="text" id="dir-new-title" required placeholder="Ej. Portal UNU o Notion" />
-              </label>
-              <label>
-                <span>Subtítulo</span>
-                <input type="text" id="dir-new-sub" placeholder="Ej. Acceso rápido" />
-              </label>
-              <label>
-                <span>URL completa</span>
-                <input type="url" id="dir-new-url" required placeholder="https://..." />
-              </label>
-              <label>
-                <span>Categoría</span>
-                <select id="dir-new-cat">
-                  <option value="personal">Mis Accesos</option>
-                  <option value="universidad">Universidad</option>
-                  <option value="atelier">Atelier Diario</option>
-                  <option value="entrenamiento">Entrenamiento</option>
-                </select>
-              </label>
-              <label>
-                <span>Color del rombo</span>
-                <input type="color" id="dir-new-color" value="#0284c7" />
-              </label>
-            </div>
-            <div class="dir-form-actions">
-              <button type="submit" class="dir-btn dir-btn-primary">${Icons.check(15)}<span>Guardar en Directorio</span></button>
-            </div>
-          </form>`
-            : ''
-        }
+          </div>
 
-        ${
-          editMode && dir.hiddenIds.length > 0
-            ? `
-          <div class="dir-card dir-form-actions" style="justify-content:space-between;align-items:center;">
-            <span class="dir-empty">Hay ${dir.hiddenIds.length} módulos ocultos. Puedes volver a mostrarlos aquí.</span>
-            <button type="button" class="dir-btn dir-btn-sm" id="dir-toggle-hidden">${showHidden ? 'Ocultar lista' : 'Mostrar ocultos'}</button>
-          </div>`
-            : ''
-        }
+          ${
+            showAddForm
+              ? `
+            <form class="dir-card dir-form" id="dir-add-link-form">
+              <div class="dir-card-head">
+                <h2>Agregar acceso directo al Directorio</h2>
+                <button type="button" class="dir-btn dir-btn-sm" id="dir-cancel-add">Cerrar</button>
+              </div>
+              <div class="dir-preset-row">
+                <span class="dir-preset-label">Plantilla rápida:</span>
+                <button type="button" class="dir-preset-chip" id="dir-preset-workout">
+                  ${Icons.dumbbell(14)}
+                  <span>Mi app de ejercicio en casa</span>
+                </button>
+              </div>
+              <div class="dir-custom-form-grid">
+                <label>
+                  <span>Nombre del módulo o enlace</span>
+                  <input type="text" id="dir-new-title" required placeholder="Ej. Portal UNU o Notion" />
+                </label>
+                <label>
+                  <span>Subtítulo</span>
+                  <input type="text" id="dir-new-sub" placeholder="Ej. Acceso rápido" />
+                </label>
+                <label>
+                  <span>URL completa</span>
+                  <input type="url" id="dir-new-url" required placeholder="https://..." />
+                </label>
+                <label>
+                  <span>Categoría</span>
+                  <select id="dir-new-cat">
+                    <option value="personal">Mis Accesos</option>
+                    <option value="universidad">Universidad</option>
+                    <option value="atelier">Atelier Diario</option>
+                    <option value="entrenamiento">Entrenamiento</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Color del indicador</span>
+                  <input type="color" id="dir-new-color" value="#7b2cbf" />
+                </label>
+              </div>
+              <div class="dir-form-actions">
+                <button type="submit" class="dir-btn dir-btn-primary">${Icons.check(15)}<span>Guardar en Directorio</span></button>
+              </div>
+            </form>`
+              : ''
+          }
 
-        <section class="dir-grid" aria-label="Módulos del ecosistema">
-          ${visible
-            .map((tile) => {
-              const pinned = dir.pinnedIds.includes(tile.id);
-              const hidden = dir.hiddenIds.includes(tile.id);
-              return `
-                <article class="dir-tile ${pinned ? 'is-pinned' : ''} ${hidden ? 'is-hidden-preview' : ''}" style="--tile-accent: ${tile.accent};">
-                  ${pinned ? `<span class="dir-pin-dot" title="Fijado arriba">${Icons.star(14)}</span>` : ''}
-                  <a class="dir-tile-open" href="${esc(tile.href)}">
-                    <div class="dir-diamond">
-                      <span class="dir-diamond-frame"></span>
-                      <span class="dir-diamond-tint"></span>
-                      <span class="dir-diamond-icon">${tile.icon(28)}</span>
-                    </div>
-                    <div class="dir-tile-copy">
-                      <span class="dir-tile-prefix">${esc(tile.prefix)}</span>
-                      <h3 class="dir-tile-title">${esc(tile.title)}</h3>
-                      <p class="dir-tile-metric">${esc(tile.metric(summary))}</p>
-                    </div>
-                  </a>
-                  ${
-                    editMode
-                      ? `
-                    <div class="dir-tile-controls">
-                      <button type="button" class="dir-ctrl-btn ${pinned ? 'is-active' : ''}" data-pin="${tile.id}" title="Fijar arriba">${Icons.star(14)}</button>
-                      <button type="button" class="dir-ctrl-btn" data-move-up="${tile.id}" title="Subir">${Icons.arrowUp(14)}</button>
-                      <button type="button" class="dir-ctrl-btn" data-move-down="${tile.id}" title="Bajar">${Icons.arrowDown(14)}</button>
-                      <button type="button" class="dir-ctrl-btn" data-hide="${tile.id}" title="${hidden ? 'Mostrar' : 'Ocultar'}">${hidden ? Icons.eye(14) : Icons.eyeOff(14)}</button>
-                      ${
-                        tile.isCustom
-                          ? `<button type="button" class="dir-ctrl-btn is-danger" data-del-custom="${tile.id}" title="Eliminar enlace">${Icons.trash(14)}</button>`
-                          : ''
-                      }
+          ${
+            editMode && dir.hiddenIds.length > 0
+              ? `
+            <div class="dir-card dir-form-actions" style="justify-content:space-between;align-items:center;">
+              <span class="dir-empty" style="margin:0;">Hay ${dir.hiddenIds.length} módulos ocultos.</span>
+              <button type="button" class="dir-btn dir-btn-sm" id="dir-toggle-hidden">${showHidden ? 'Ocultar lista' : 'Mostrar ocultos'}</button>
+            </div>`
+              : ''
+          }
+
+          <section class="dir-grid" aria-label="Módulos del ecosistema">
+            ${
+              visible.length > 0
+                ? visible
+                    .map((tile) => {
+                      const pinned = dir.pinnedIds.includes(tile.id);
+                      const hidden = dir.hiddenIds.includes(tile.id);
+                      return `
+                        <article class="dir-tile ${pinned ? 'is-pinned' : ''} ${hidden ? 'is-hidden-preview' : ''}" data-domain="${tile.category}">
+                          <a class="dir-tile-open" href="${esc(tile.href)}">
+                            <div class="dir-tile-head">
+                              <span class="dir-domain-pill">${esc(DOMAIN_LABELS[tile.category])}</span>
+                              <div style="display:flex;align-items:center;gap:6px;">
+                                ${pinned ? `<span class="dir-pin-dot" title="Fijado arriba">${Icons.star(14)}</span>` : ''}
+                                <span class="dir-tile-icon-box" aria-hidden="true">${tile.icon(16)}</span>
+                              </div>
+                            </div>
+                            <div class="dir-tile-copy">
+                              <h3 class="dir-tile-title">${esc(tile.title)}</h3>
+                              <p class="dir-tile-metric">${esc(tile.metric(summary))}</p>
+                            </div>
+                            <div class="dir-tile-foot">
+                              <span>${esc(tile.prefix)}</span>
+                              <span class="dir-tile-go">Abrir →</span>
+                            </div>
+                          </a>
+                          ${
+                            editMode
+                              ? `
+                            <div class="dir-tile-controls">
+                              <button type="button" class="dir-ctrl-btn ${pinned ? 'is-active' : ''}" data-pin="${tile.id}" title="Fijar arriba">${Icons.star(14)}</button>
+                              <button type="button" class="dir-ctrl-btn" data-move-up="${tile.id}" title="Subir">${Icons.arrowUp(14)}</button>
+                              <button type="button" class="dir-ctrl-btn" data-move-down="${tile.id}" title="Bajar">${Icons.arrowDown(14)}</button>
+                              <button type="button" class="dir-ctrl-btn" data-hide="${tile.id}" title="${hidden ? 'Mostrar' : 'Ocultar'}">${hidden ? Icons.eye(14) : Icons.eyeOff(14)}</button>
+                              ${
+                                tile.isCustom
+                                  ? `<button type="button" class="dir-ctrl-btn is-danger" data-del-custom="${tile.id}" title="Eliminar enlace">${Icons.trash(14)}</button>`
+                                  : ''
+                              }
+                            </div>`
+                              : ''
+                          }
+                        </article>`;
+                    })
+                    .join('')
+                : `<div class="dir-card" style="grid-column:1 / -1;">
+                     <p class="dir-empty" style="margin:0 0 10px;">Sin coincidencias para "${esc(searchQuery)}".</p>
+                     <button type="button" class="dir-btn dir-btn-sm" id="dir-reset-search">Limpiar filtro</button>
+                   </div>`
+            }
+          </section>
+
+          <section class="dir-overview-grid" aria-label="Resumen por aplicación">
+            <div class="dir-card">
+              <div class="dir-card-head">
+                <h2>Pulso de Atelier Diario</h2>
+                <a class="dir-btn dir-btn-sm" href="${esc(resolveEcosystemAppUrl('atelier', 'studio'))}">Abrir Cuaderno</a>
+              </div>
+              ${
+                summary.atelierHasData
+                  ? `
+                    <p class="dir-origin-meta">Racha ${summary.atelierStreak} ${summary.atelierStreak === 1 ? 'día' : 'días'} · ${summary.atelierTodayDone}/${summary.atelierTotalModules} hábitos hoy</p>
+                    <div class="dir-stat-grid">
+                      <div class="dir-stat-box"><span>Hábitos hoy</span><strong>${summary.atelierTodayDone}/${summary.atelierTotalModules}</strong></div>
+                      <div class="dir-stat-box"><span>Racha</span><strong>${summary.atelierStreak}d</strong></div>
+                      <div class="dir-stat-box"><span>Documentos</span><strong>${summary.docsCount}</strong></div>
                     </div>`
-                      : ''
-                  }
-                </article>`;
-            })
-            .join('')}
-        </section>
+                  : `
+                    <div class="dir-origin-note">
+                      <p>${emptyOriginNote}</p>
+                      ${!configured ? `<button type="button" class="dir-btn dir-btn-sm" data-open-cloud>Configurar Nube</button>` : ''}
+                    </div>`
+              }
+            </div>
 
-        <section class="dir-overview-grid">
-          <div class="dir-card">
-            <div class="dir-card-head">
-              <h2>Pulso de Atelier Diario</h2>
-              <a class="dir-btn dir-btn-sm" href="${esc(resolveEcosystemAppUrl('atelier', 'studio'))}">Abrir Cuaderno</a>
+            <div class="dir-card">
+              <div class="dir-card-head">
+                <h2>UNUmbral y OMNI ARENA</h2>
+                <a class="dir-btn dir-btn-sm" href="${esc(resolveEcosystemAppUrl('unumbral'))}">Ir a UNUmbral</a>
+              </div>
+              ${
+                summary.unumbralHasData || summary.arenaHasData
+                  ? `
+                    <div class="dir-stat-grid">
+                      <div class="dir-stat-box"><span>Cursos UNU</span><strong>${summary.unumbralHasData ? summary.unumbralCourses : '--'}</strong></div>
+                      <div class="dir-stat-box"><span>Tareas pend.</span><strong>${summary.unumbralHasData ? summary.unumbralPendingTasks : '--'}</strong></div>
+                      <div class="dir-stat-box"><span>Rango Arena</span><strong>${summary.arenaHasData ? `${esc(summary.arenaRank)} (${summary.arenaOverall})` : '--'}</strong></div>
+                      <div class="dir-stat-box"><span>NeuroScore</span><strong>${summary.arenaNeuroScore !== null ? summary.arenaNeuroScore : '--'}</strong></div>
+                    </div>`
+                  : `
+                    <div class="dir-origin-note">
+                      <p>${emptyOriginNote}</p>
+                      ${!configured ? `<button type="button" class="dir-btn dir-btn-sm" data-open-cloud>Configurar Nube</button>` : ''}
+                    </div>`
+              }
+            </div>
+          </section>
+
+          <section class="dir-card dir-tutorial-card ${showEcoTutorial ? 'is-open' : ''}" aria-label="Guía del Ecosistema">
+            <div class="dir-tutorial-head">
+              <div class="dir-tutorial-title-wrap">
+                <span class="dir-tutorial-icon">${Icons.bookOpen(16)}</span>
+                <div>
+                  <h2>Guía rápida del Ecosistema</h2>
+                  <p>Cómo se conectan las 4 apps y cómo sincronizar tu código de espacio en Supabase.</p>
+                </div>
+              </div>
+              <button type="button" class="dir-btn dir-btn-sm" id="dir-toggle-eco-tut" aria-expanded="${showEcoTutorial ? 'true' : 'false'}">
+                <span>${showEcoTutorial ? 'Ocultar' : 'Ver guía'}</span>
+                ${Icons.chevronDown(14)}
+              </button>
             </div>
             ${
-              summary.atelierHasData
-                ? `
-                  <p class="dir-origin-meta">Racha ${summary.atelierStreak} ${summary.atelierStreak === 1 ? 'día' : 'días'} · ${summary.atelierTodayDone}/${summary.atelierTotalModules} hábitos hoy</p>
-                  <div class="dir-stat-grid">
-                    <div class="dir-stat-box"><span>Hábitos hoy</span><strong>${summary.atelierTodayDone}/${summary.atelierTotalModules}</strong></div>
-                    <div class="dir-stat-box"><span>Racha</span><strong>${summary.atelierStreak} días</strong></div>
-                    <div class="dir-stat-box"><span>Documentos</span><strong>${summary.docsCount}</strong></div>
+              showEcoTutorial
+                ? `<div class="dir-tutorial-body">
+                    <div class="dir-tutorial-steps">
+                      <div class="dir-tutorial-step">
+                        <div class="dir-tutorial-step-head">${Icons.grid(15)}<strong>1. Directorio</strong></div>
+                        <p>Puerta única del ecosistema. Dirige tu Ruta de Hoy (15 min), busca cualquier módulo y gestiona accesos fijados o externos.</p>
+                      </div>
+                      <div class="dir-tutorial-step">
+                        <div class="dir-tutorial-step-head">${Icons.bookOpen(15)}<strong>2. Atelier Diario</strong></div>
+                        <p>17 talleres prácticos: Brújula, Cuaderno/PDF, Lector RSVP, Caligrafía, Dibujo, Postura Pro, Carrera, Canto y Calma.</p>
+                      </div>
+                      <div class="dir-tutorial-step">
+                        <div class="dir-tutorial-step-head">${Icons.graduation(15)}<strong>3. UNUmbral</strong></div>
+                        <p>Organizador universitario offline-first: horario 12h, notas vigesimales, alertas 10/20/30%, huecos y transferencia QR.</p>
+                      </div>
+                      <div class="dir-tutorial-step">
+                        <div class="dir-tutorial-step-head">${Icons.omni(15)}<strong>4. OMNI ARENA</strong></div>
+                        <p>40 disciplinas 2D/3D, 22 academias (música, IQ, ajedrez, Rubik), NeuroLab++ y radar de 5 ejes.</p>
+                      </div>
+                    </div>
+                    <div class="dir-tutorial-cloud">
+                      <div class="dir-tutorial-cloud-copy">
+                        <span>${Icons.cloud(15)}</span>
+                        <span><strong>Sincronización Supabase:</strong> usa el mismo <em>Código de espacio</em> o la <em>Llave rápida</em> en las 4 apps para mantener tema, progreso y cuadernos al día.</span>
+                      </div>
+                      <button type="button" class="dir-btn dir-btn-primary dir-btn-sm" data-open-cloud>${Icons.cloud(14)}<span>${configured ? 'Revisar Nube' : 'Activar Nube'}</span></button>
+                    </div>
                   </div>`
-                : `
-                  <div class="dir-origin-note">
-                    <p>${emptyOriginNote}</p>
-                    ${!configured ? `<button type="button" class="dir-btn dir-btn-sm" data-open-cloud>Configurar Nube</button>` : ''}
-                  </div>`
+                : ''
             }
-          </div>
-
-          <div class="dir-card">
-            <div class="dir-card-head">
-              <h2>UNUmbral y OMNI ARENA</h2>
-              <a class="dir-btn dir-btn-sm" href="${esc(resolveEcosystemAppUrl('unumbral'))}">Ir a UNUmbral</a>
-            </div>
-            ${
-              summary.unumbralHasData || summary.arenaHasData
-                ? `
-                  <div class="dir-stat-grid">
-                    <div class="dir-stat-box"><span>Cursos UNU</span><strong>${summary.unumbralHasData ? summary.unumbralCourses : '--'}</strong></div>
-                    <div class="dir-stat-box"><span>Tareas pend.</span><strong>${summary.unumbralHasData ? summary.unumbralPendingTasks : '--'}</strong></div>
-                    <div class="dir-stat-box"><span>Rango Arena</span><strong>${summary.arenaHasData ? `${esc(summary.arenaRank)} (${summary.arenaOverall})` : '--'}</strong></div>
-                    <div class="dir-stat-box"><span>NeuroScore</span><strong>${summary.arenaNeuroScore !== null ? summary.arenaNeuroScore : '--'}</strong></div>
-                    <div class="dir-stat-box"><span>Partidas</span><strong>${summary.arenaHasData ? summary.arenaSessions : '--'}</strong></div>
-                  </div>
-                  ${
-                    !summary.unumbralHasData || !summary.arenaHasData
-                      ? `<div class="dir-origin-note" style="margin-top:10px;"><p>${emptyOriginNote}</p>${!configured ? `<button type="button" class="dir-btn dir-btn-sm" data-open-cloud>Configurar Nube</button>` : ''}</div>`
-                      : ''
-                  }`
-                : `
-                  <div class="dir-origin-note">
-                    <p>${emptyOriginNote}</p>
-                    ${!configured ? `<button type="button" class="dir-btn dir-btn-sm" data-open-cloud>Configurar Nube</button>` : ''}
-                  </div>`
-            }
-          </div>
+          </section>
         </section>
       </main>
 
@@ -946,6 +979,29 @@ function renderApp(): void {
 }
 
 function bindEvents(): void {
+  const searchInput = root.querySelector('#dir-search') as HTMLInputElement | null;
+  searchInput?.addEventListener('input', () => {
+    const pos = searchInput.selectionStart ?? searchInput.value.length;
+    searchQuery = searchInput.value;
+    renderApp();
+    const nextInput = root.querySelector('#dir-search') as HTMLInputElement | null;
+    if (nextInput) {
+      nextInput.focus();
+      nextInput.setSelectionRange(pos, pos);
+    }
+  });
+
+  root.querySelector('#dir-clear-search')?.addEventListener('click', () => {
+    searchQuery = '';
+    renderApp();
+    (root.querySelector('#dir-search') as HTMLInputElement | null)?.focus();
+  });
+
+  root.querySelector('#dir-reset-search')?.addEventListener('click', () => {
+    searchQuery = '';
+    directoryStore.setCategory('all');
+  });
+
   root.querySelector('#dir-open-cloud')?.addEventListener('click', () => {
     activeModal = 'cloud';
     renderApp();
@@ -1017,7 +1073,7 @@ function bindEvents(): void {
     if (titleInput) titleInput.value = 'Ejercicio en casa';
     if (subInput) subInput.value = 'Rutina externa sin máquinas';
     if (catSelect) catSelect.value = 'personal';
-    if (colorInput) colorInput.value = '#16a34a';
+    if (colorInput) colorInput.value = '#4d6b4a';
     if (form) form.dataset.presetIcon = 'dumbbell';
     if (urlInput) {
       urlInput.placeholder = 'https://tu-app-o-playlist-de-ejercicio...';
@@ -1225,6 +1281,21 @@ function bindEvents(): void {
     renderApp();
   });
 }
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && activeModal !== 'none') {
+    activeModal = 'none';
+    cloudStatusMsg = '';
+    renderApp();
+    return;
+  }
+  const activeTag = (document.activeElement?.tagName ?? '').toLowerCase();
+  const isTyping = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+  if (((e.key === '/' && !isTyping) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) && activeModal === 'none') {
+    e.preventDefault();
+    (root.querySelector('#dir-search') as HTMLInputElement | null)?.focus();
+  }
+});
 
 directoryStore.subscribe(() => renderApp());
 cloudSync.onStatusChange(() => {
