@@ -136,16 +136,6 @@ function buildTiles(): DirectoryTileDef[] {
       metric: () => 'Frases guardadas y notas',
     },
     {
-      id: 'mod-vault',
-      title: 'Baúl de Guardados',
-      prefix: 'Módulo Atelier',
-      category: 'atelier',
-      accent: '#0f4c81',
-      icon: Icons.archive,
-      href: resolveEcosystemAppUrl('atelier', 'vault'),
-      metric: () => '1,290+ ideas y recursos',
-    },
-    {
       id: 'mod-focuslab',
       title: 'Oratoria y Enfoque',
       prefix: 'Módulo Atelier',
