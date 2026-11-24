@@ -48,6 +48,10 @@ export const DEFAULT_DIRECTORY_ORDER = [
   'mod-focuslab',
   'mod-singing',
   'mod-calm',
+  'mod-critical',
+  'mod-writing',
+  'mod-finance',
+  'mod-vitality',
   'app-unumbral',
   'app-arena',
 ];
