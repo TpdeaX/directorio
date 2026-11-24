@@ -93,7 +93,7 @@ function buildTiles(): DirectoryTileDef[] {
       accent: '#d97706',
       icon: Icons.pen,
       href: resolveEcosystemAppUrl('atelier', 'calligraphy'),
-      metric: () => '96 plantillas guiadas',
+      metric: () => '128 plantillas guiadas',
     },
     {
       id: 'mod-drawing',
@@ -103,7 +103,7 @@ function buildTiles(): DirectoryTileDef[] {
       accent: '#B45309',
       icon: Icons.palette,
       href: resolveEcosystemAppUrl('atelier', 'drawing'),
-      metric: () => '56+ láminas y refs de Internet',
+      metric: () => '56 láminas + 12 retos',
     },
     {
       id: 'mod-typing',
@@ -113,7 +113,7 @@ function buildTiles(): DirectoryTileDef[] {
       accent: '#475569',
       icon: Icons.keyboard,
       href: resolveEcosystemAppUrl('atelier', 'typing'),
-      metric: () => 'Velocidad y precisión',
+      metric: () => 'Teclado visual y adaptativo',
     },
     {
       id: 'mod-language',
@@ -123,7 +123,7 @@ function buildTiles(): DirectoryTileDef[] {
       accent: '#0891b2',
       icon: Icons.spell,
       href: resolveEcosystemAppUrl('atelier', 'language'),
-      metric: () => '80+ reglas y glosario',
+      metric: () => '96 reglas, examen y léxico',
     },
     {
       id: 'mod-mindset',
@@ -470,6 +470,89 @@ function renderApp(): void {
             <div class="dir-kpi"><span>Cursos UNU</span><strong>${summary.unumbralHasData ? summary.unumbralCourses : '--'}</strong></div>
             <div class="dir-kpi"><span>OMNI ARENA</span><strong>${summary.arenaHasData ? esc(summary.arenaRank) : '--'}</strong></div>
           </div>
+        </section>
+
+        <section class="dir-cockpit-grid" aria-label="Continuar donde lo dejaste y recomendaciones del día">
+          <article class="dir-card dir-cockpit-card">
+            <div class="dir-card-head">
+              <h2>Donde lo dejaste</h2>
+              <span class="dir-empty">Sincronizado</span>
+            </div>
+            ${
+              summary.atelierResume
+                ? `
+              <div class="dir-cockpit-resume">
+                <span class="dir-empty">${esc(summary.atelierResume.timeLabel)}</span>
+                <strong>${esc(summary.atelierResume.label)}</strong>
+                <p>${esc(summary.atelierResume.detail)}</p>
+                <a class="dir-btn dir-btn-primary dir-btn-sm" href="${esc(summary.atelierResume.href)}">Continuar donde lo dejaste</a>
+              </div>`
+                : `
+              <div class="dir-cockpit-resume">
+                <strong>Sin sesión reciente registrada</strong>
+                <p>Abre cualquier taller de Atelier Diario y aquí aparecerá exactamente dónde te quedaste.</p>
+                <a class="dir-btn dir-btn-primary dir-btn-sm" href="${esc(resolveEcoUrl('atelier'))}">Abrir Atelier Diario</a>
+              </div>`
+            }
+            ${
+              summary.atelierRecent.length > 0
+                ? `<div class="dir-recent-row">${summary.atelierRecent
+                    .map(
+                      (r) =>
+                        `<a class="dir-recent-pill" href="${esc(r.href)}">${esc(r.label)} · ${esc(r.timeLabel)}</a>`
+                    )
+                    .join('')}</div>`
+                : ''
+            }
+          </article>
+
+          <article class="dir-card dir-cockpit-card">
+            <div class="dir-card-head">
+              <h2>Pendientes y a medias (${summary.pendingItems.length})</h2>
+              <span class="dir-empty">Retoma al instante</span>
+            </div>
+            <div class="dir-cockpit-list">
+              ${
+                summary.pendingItems.length > 0
+                  ? summary.pendingItems
+                      .map(
+                        (item) => `
+                    <a class="dir-cockpit-item ${item.priority === 'high' ? 'is-priority' : ''}" href="${esc(item.href)}">
+                      <div class="dir-cockpit-item-top">
+                        <strong>${esc(item.title)}</strong>
+                        <span class="dir-cockpit-badge">${esc(item.badge)}</span>
+                      </div>
+                      <span class="dir-cockpit-sub">${esc(item.subtitle)}</span>
+                      <span class="dir-cockpit-cta">${esc(item.cta)}</span>
+                    </a>`
+                      )
+                      .join('')
+                  : '<p class="dir-empty" style="margin:0;">Sin pendientes a medias en este momento. Todo está al día.</p>'
+              }
+            </div>
+          </article>
+
+          <article class="dir-card dir-cockpit-card">
+            <div class="dir-card-head">
+              <h2>Recomendado para hoy</h2>
+              <span class="dir-empty">Según tu avance y hora</span>
+            </div>
+            <div class="dir-cockpit-list">
+              ${summary.recommendedItems
+                .map(
+                  (rec) => `
+                <a class="dir-cockpit-item" href="${esc(rec.href)}">
+                  <div class="dir-cockpit-item-top">
+                    <strong>${esc(rec.title)}</strong>
+                    <span class="dir-cockpit-badge">${esc(rec.badge)}</span>
+                  </div>
+                  <span class="dir-cockpit-sub">${esc(rec.subtitle)}</span>
+                  <span class="dir-cockpit-cta">${esc(rec.cta)}</span>
+                </a>`
+                )
+                .join('')}
+            </div>
+          </article>
         </section>
 
         <section class="dir-card dir-tutorial-card ${showEcoTutorial ? 'is-open' : ''}" aria-label="Tutorial rápido del Ecosistema">

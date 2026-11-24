@@ -1064,3 +1064,121 @@ button {
   margin-top: 2px;
   flex-shrink: 0;
 }
+
+/* ==================== COCKPIT: DONDE LO DEJASTE & RECOMENDADOS ==================== */
+
+.dir-cockpit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dir-cockpit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dir-cockpit-resume {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+}
+
+.dir-cockpit-resume p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-secondary);
+}
+
+.dir-recent-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.dir-recent-pill {
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  text-decoration: none;
+}
+
+.dir-recent-pill:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.dir-cockpit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dir-cockpit-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.dir-cockpit-item:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.dir-cockpit-item.is-priority {
+  border-left: 3px solid var(--accent-amber, #b45309);
+}
+
+.dir-cockpit-item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.dir-cockpit-badge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+  color: var(--accent-primary);
+  white-space: nowrap;
+}
+
+.dir-cockpit-sub {
+  font-size: 0.78rem;
+  color: var(--ink-secondary);
+  line-height: 1.35;
+}
+
+.dir-cockpit-cta {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+@media (max-width: 960px) {
+  .dir-cockpit-grid {
+    grid-template-columns: 1fr;
+  }
+}

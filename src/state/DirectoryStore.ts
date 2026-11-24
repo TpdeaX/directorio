@@ -495,6 +495,17 @@ function safeJsonParse<T>(raw: string | null): T | null {
   }
 }
 
+function formatRelativeEs(ts: number): string {
+  if (!ts || ts <= 0) return 'Reciente';
+  const diffMin = Math.max(0, Math.floor((Date.now() - ts) / 60000));
+  if (diffMin < 1) return 'Hace un momento';
+  if (diffMin < 60) return `Hace ${diffMin} min`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `Hace ${diffH} h`;
+  const diffD = Math.floor(diffH / 24);
+  return diffD === 1 ? 'Ayer' : `Hace ${diffD} días`;
+}
+
 export function buildCompanionSummary(
   remoteScopes?: Partial<Record<EcosystemScope, { payload: unknown; updated_at: number }>>,
   remoteDocsCount?: number | null
@@ -504,6 +515,10 @@ export function buildCompanionSummary(
     atelierTodayDone: 0,
     atelierTotalModules: 10,
     atelierStreak: 0,
+    atelierResume: null,
+    atelierRecent: [],
+    pendingItems: [],
+    recommendedItems: [],
     docsCount: remoteDocsCount ?? 0,
     unumbralHasData: false,
     unumbralCourses: 0,
@@ -529,6 +544,23 @@ export function buildCompanionSummary(
       lastActiveDay?: string;
       todayHabits?: Record<string, boolean>;
       dailyTasks?: Record<string, Record<string, boolean>>;
+      modulePrefs?: {
+        reader?: { lastArticleTitle?: string };
+      };
+      progress?: {
+        activity?: {
+          lastModule?: string | null;
+          lastVisitedAt?: number;
+          recent?: { moduleId: string; at: number; label: string; detail: string }[];
+        };
+        reader?: { scrollByTitle?: Record<string, number> };
+        language?: { missedOrthoIds?: string[] };
+        drawing?: { savedDrafts?: Record<string, unknown[]> };
+        calligraphy?: { savedStrokes?: Record<string, unknown[]> };
+        typing?: { keyErrors?: Record<string, number> };
+        calm?: { groundDone?: boolean[] };
+        vault?: { reviewedToday?: number; dailyGoal?: number; lastReviewDay?: string };
+      };
       updatedAt?: number;
     }
     const remoteAtelier = remoteScopes?.atelier_profile?.payload as AtelierProfileShape | undefined;
@@ -557,6 +589,96 @@ export function buildCompanionSummary(
         const todayMap = atelier.dailyTasks[today] ?? {};
         summary.atelierTotalModules = 10;
         summary.atelierTodayDone = Object.values(todayMap).filter(Boolean).length;
+      }
+
+      const pr = atelier.progress;
+      const act = pr?.activity;
+      if (act?.lastModule) {
+        const first = Array.isArray(act.recent)
+          ? act.recent.find((r) => r.moduleId === act.lastModule)
+          : undefined;
+        summary.atelierResume = {
+          moduleId: act.lastModule,
+          label: first?.label || `Atelier · ${act.lastModule}`,
+          detail: first?.detail || 'Retoma exactamente donde lo dejaste.',
+          timeLabel: formatRelativeEs(act.lastVisitedAt || first?.at || atelier.updatedAt || 0),
+          href: resolveEcosystemAppUrl('atelier', act.lastModule),
+        };
+      } else if (atelier.modulePrefs?.reader?.lastArticleTitle) {
+        summary.atelierResume = {
+          moduleId: 'reader',
+          label: `Lectura · ${atelier.modulePrefs.reader.lastArticleTitle}`,
+          detail: 'Última lectura guardada en Atelier Diario.',
+          timeLabel: formatRelativeEs(atelier.updatedAt || 0),
+          href: resolveEcosystemAppUrl('atelier', 'reader'),
+        };
+      }
+
+      if (Array.isArray(act?.recent)) {
+        summary.atelierRecent = act.recent.slice(0, 4).map((r) => ({
+          label: (r.label || r.moduleId).split('·')[0].trim(),
+          timeLabel: formatRelativeEs(r.at),
+          href: resolveEcosystemAppUrl('atelier', r.moduleId),
+        }));
+      }
+
+      // Pendientes reales de Atelier
+      const halfRead = Object.entries(pr?.reader?.scrollByTitle ?? {}).find(
+        ([, pct]) => typeof pct === 'number' && pct > 0 && pct < 100
+      );
+      if (halfRead) {
+        summary.pendingItems.push({
+          title: `Retomar lectura: ${halfRead[0].slice(0, 38)}`,
+          subtitle: `Te quedaste al ${halfRead[1]}%.`,
+          badge: `${halfRead[1]}%`,
+          href: resolveEcosystemAppUrl('atelier', 'reader'),
+          cta: 'Seguir leyendo',
+          priority: 'high',
+        });
+      }
+      const missedOrtho = pr?.language?.missedOrthoIds?.length ?? 0;
+      if (missedOrtho > 0) {
+        summary.pendingItems.push({
+          title: `Repasar ${missedOrtho} ${missedOrtho === 1 ? 'regla fallada' : 'reglas falladas'} de Ortografía`,
+          subtitle: 'Cola de fallos lista en Ortografía y Léxico.',
+          badge: `${missedOrtho} fallos`,
+          href: resolveEcosystemAppUrl('atelier', 'language'),
+          cta: 'Repasar ahora',
+          priority: 'high',
+        });
+      }
+      const drawDrafts = Object.keys(pr?.drawing?.savedDrafts ?? {}).length;
+      if (drawDrafts > 0) {
+        summary.pendingItems.push({
+          title: `Borrador de Dibujo guardado (${drawDrafts})`,
+          subtitle: 'Tus trazos siguen en el lienzo listos para continuar.',
+          badge: 'Borrador',
+          href: resolveEcosystemAppUrl('atelier', 'drawing'),
+          cta: 'Abrir lienzo',
+          priority: 'high',
+        });
+      }
+      const calDrafts = Object.keys(pr?.calligraphy?.savedStrokes ?? {}).length;
+      if (calDrafts > 0) {
+        summary.pendingItems.push({
+          title: 'Hoja de Caligrafía en curso',
+          subtitle: 'Retoma tu trazo guardado y evalúa tu puntaje.',
+          badge: 'En curso',
+          href: resolveEcosystemAppUrl('atelier', 'calligraphy'),
+          cta: 'Continuar',
+        });
+      }
+      const groundDone = Array.isArray(pr?.calm?.groundDone)
+        ? pr.calm.groundDone.filter(Boolean).length
+        : 0;
+      if (groundDone > 0 && groundDone < 15) {
+        summary.pendingItems.push({
+          title: `Calma 5-4-3-2-1 a medias (${groundDone}/15)`,
+          subtitle: 'Completa el ejercicio sensorial en 2 minutos.',
+          badge: `${groundDone}/15`,
+          href: resolveEcosystemAppUrl('atelier', 'calm'),
+          cta: 'Continuar calma',
+        });
       }
     }
 
@@ -694,6 +816,67 @@ export function buildCompanionSummary(
         bestValues.length > 0 ? Math.max(...bestValues) : Number(arena.bestScore) || 0;
       summary.arenaUpdatedAt = Math.max(remoteArenaTs, localArenaTs);
     }
+
+    // 4. Pendientes académicos + Recomendaciones inteligentes del ecosistema
+    if (summary.unumbralPendingTasks > 0) {
+      summary.pendingItems.unshift({
+        title: `${summary.unumbralPendingTasks} ${summary.unumbralPendingTasks === 1 ? 'tarea pendiente' : 'tareas pendientes'} en UNUmbral`,
+        subtitle: 'Revisa entregas próximas y planifica un bloque con plantilla Cornell.',
+        badge: 'Universidad',
+        href: resolveEcoUrl('unumbral'),
+        cta: 'Abrir UNUmbral',
+        priority: 'high',
+      });
+    }
+
+    const hour = new Date().getHours();
+    if (summary.unumbralPendingTasks > 0) {
+      summary.recommendedItems.push({
+        title: 'Organiza tu tarea urgente con plantilla Cornell',
+        subtitle: 'Abre Cuaderno y PDF en modo Plantillas didácticas para avanzar en 15 min.',
+        badge: 'Prioridad',
+        href: resolveEcosystemAppUrl('atelier', 'studio'),
+        cta: 'Ir a Cuaderno',
+        priority: 'high',
+      });
+    }
+    if (hour < 12) {
+      summary.recommendedItems.push({
+        title: 'Activa la mañana con Ortografía o Evocación Activa',
+        subtitle: '5 minutos de práctica guiada suman racha y refuerzan memoria.',
+        badge: 'Mañana',
+        href: resolveEcosystemAppUrl('atelier', 'language'),
+        cta: 'Practicar hoy',
+      });
+    } else if (hour < 19) {
+      summary.recommendedItems.push({
+        title: 'Avanza 1 lámina paso a paso en Dibujo o 5 min de Canto',
+        subtitle: 'Entrena técnica guiada con guardado automático de trazos y puntaje.',
+        badge: 'Tarde',
+        href: resolveEcosystemAppUrl('atelier', 'drawing'),
+        cta: 'Abrir taller',
+      });
+    } else {
+      summary.recommendedItems.push({
+        title: 'Cierra el día con Calma 3-6 y registro emocional',
+        subtitle: 'Baja revoluciones y mide tu reducción de tensión antes de descansar.',
+        badge: 'Noche',
+        href: resolveEcosystemAppUrl('atelier', 'calm'),
+        cta: 'Ir a Calma',
+      });
+    }
+    summary.recommendedItems.push({
+      title: 'Ronda rápida de entrenamiento en OMNI ARENA',
+      subtitle: summary.arenaHasData
+        ? `Rango actual ${summary.arenaRank} (${summary.arenaOverall} radar). Mantén tus reflejos e IQ activos.`
+        : '33 disciplinas 2D/3D y 15 academias guiadas para entrenar mente y música.',
+      badge: 'Arena',
+      href: resolveEcoUrl('arena'),
+      cta: 'Entrar a Arena',
+    });
+
+    summary.pendingItems = summary.pendingItems.slice(0, 4);
+    summary.recommendedItems = summary.recommendedItems.slice(0, 3);
   } catch {
     // Ignore storage/parse errors
   }

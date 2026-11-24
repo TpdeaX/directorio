@@ -48,11 +48,30 @@ export interface DirectoryConfig {
   updatedAt: number;
 }
 
+export interface CompanionActionItem {
+  title: string;
+  subtitle: string;
+  badge: string;
+  href: string;
+  cta: string;
+  priority?: 'high' | 'normal';
+}
+
 export interface CompanionSummary {
   atelierHasData: boolean;
   atelierTodayDone: number;
   atelierTotalModules: number;
   atelierStreak: number;
+  atelierResume: {
+    moduleId: string;
+    label: string;
+    detail: string;
+    timeLabel: string;
+    href: string;
+  } | null;
+  atelierRecent: { label: string; timeLabel: string; href: string }[];
+  pendingItems: CompanionActionItem[];
+  recommendedItems: CompanionActionItem[];
   docsCount: number;
   unumbralHasData: boolean;
   unumbralCourses: number;
