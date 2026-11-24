@@ -3,13 +3,17 @@ import { Icons } from './icons';
 import { cloudSync, SUPABASE_SETUP_SQL } from './services/CloudSync';
 import {
   buildCompanionSummary,
+  buildDailyRoutePlan,
+  DAILY_ROUTE_STORAGE_KEY,
   directoryStore,
   readArenaCatalogMeta,
   resolveEcoUrl,
   resolveEcosystemAppUrl,
+  toggleDailyRouteStep,
 } from './state/DirectoryStore';
 import {
   CompanionSummary,
+  DailyRouteStepId,
   DirectoryCategory,
   EcosystemScope,
 } from './types';
@@ -58,6 +62,7 @@ function customIcon(key: string): (s?: number) => string {
   if (key === 'gamepad') return Icons.gamepad;
   if (key === 'star') return Icons.star;
   if (key === 'bulb') return Icons.bulb;
+  if (key === 'dumbbell') return Icons.dumbbell;
   return Icons.link;
 }
 
@@ -65,6 +70,16 @@ function buildTiles(): DirectoryTileDef[] {
   const dir = directoryStore.get();
 
   const builtIns: DirectoryTileDef[] = [
+    {
+      id: 'mod-compass',
+      title: 'Brújula Personal',
+      prefix: 'Módulo Atelier',
+      category: 'atelier',
+      accent: '#7c3aed',
+      icon: Icons.compass,
+      href: resolveEcosystemAppUrl('atelier', 'compass'),
+      metric: () => 'Diario 3 min, Rueda, Metas 90d y Anti-hábitos',
+    },
     {
       id: 'mod-studio',
       title: 'Cuaderno y PDF',
@@ -77,13 +92,13 @@ function buildTiles(): DirectoryTileDef[] {
     },
     {
       id: 'mod-reader',
-      title: 'Biblioteca y Lector',
+      title: 'Biblioteca y RSVP',
       prefix: 'Módulo Atelier',
       category: 'atelier',
       accent: '#2563eb',
       icon: Icons.book,
       href: resolveEcosystemAppUrl('atelier', 'reader'),
-      metric: () => 'Clásicos y lectura libre',
+      metric: () => 'Clásicos, lectura rápida WPM y síntesis',
     },
     {
       id: 'mod-calligraphy',
@@ -127,23 +142,23 @@ function buildTiles(): DirectoryTileDef[] {
     },
     {
       id: 'mod-mindset',
-      title: 'Frases y Criterio',
+      title: 'Criterio y Creatividad',
       prefix: 'Módulo Atelier',
       category: 'atelier',
       accent: '#ca8a04',
       icon: Icons.bulb,
       href: resolveEcosystemAppUrl('atelier', 'mindset'),
-      metric: () => 'Frases guardadas y notas',
+      metric: () => 'Frases, SCAMPER y pensamiento lateral',
     },
     {
       id: 'mod-focuslab',
-      title: 'Oratoria y Enfoque',
+      title: 'Oratoria, SM-2 y Feynman',
       prefix: 'Módulo Atelier',
       category: 'atelier',
       accent: '#0f766e',
       icon: Icons.mic,
       href: resolveEcosystemAppUrl('atelier', 'focuslab'),
-      metric: () => 'Muletillas, Schulte y Recall',
+      metric: () => 'Muletillas, repetición espaciada y recall',
     },
     {
       id: 'mod-singing',
@@ -197,13 +212,33 @@ function buildTiles(): DirectoryTileDef[] {
     },
     {
       id: 'mod-vitality',
-      title: 'Energía y Postura',
+      title: 'Postura Pro y Energía',
       prefix: 'Módulo Atelier',
       category: 'atelier',
       accent: '#0284C7',
       icon: Icons.activity,
       href: resolveEcosystemAppUrl('atelier', 'vitality'),
-      metric: () => 'Pausas activas, 20-20-20 y sueño',
+      metric: () => 'Monitor webcam, mapa corporal, 21d y nutrición',
+    },
+    {
+      id: 'mod-career',
+      title: 'Social y Carrera',
+      prefix: 'Módulo Atelier',
+      category: 'atelier',
+      accent: '#0369a1',
+      icon: Icons.briefcase,
+      href: resolveEcosystemAppUrl('atelier', 'career'),
+      metric: () => 'Negociación, entrevistas STAR y Brag Doc',
+    },
+    {
+      id: 'mod-guides',
+      title: 'Rutas y YouTube',
+      prefix: 'Módulo Atelier',
+      category: 'atelier',
+      accent: '#dc2626',
+      icon: Icons.playCircle,
+      href: resolveEcosystemAppUrl('atelier', 'guides'),
+      metric: () => 'Origami, dibujo, caligrafía y rutas YouTube',
     },
     {
       id: 'app-unumbral',
@@ -217,6 +252,19 @@ function buildTiles(): DirectoryTileDef[] {
         s.unumbralHasData
           ? `${s.unumbralCourses} cursos · ${s.unumbralPendingTasks} tareas`
           : 'Horario, cursos y notas',
+    },
+    {
+      id: 'app-neurolab',
+      title: 'NeuroNation++ Lab',
+      prefix: 'OMNI ARENA · Cognitivo',
+      category: 'entrenamiento',
+      accent: '#4f46e5',
+      icon: Icons.brain,
+      href: resolveEcosystemAppUrl('arena', 'neurolab'),
+      metric: (s) =>
+        s.arenaNeuroScore !== null
+          ? `NeuroScore ${s.arenaNeuroScore}${s.arenaNeuroDailyDone ? ' · Hoy listo' : ' · Sesión diaria'}`
+          : 'Test cognitivo, sesión diaria y 4 cursos',
     },
     {
       id: 'app-arena',
@@ -407,6 +455,85 @@ function renderEcoSwitch(): string {
   `;
 }
 
+function renderDailyRouteCard(summary: CompanionSummary): string {
+  const plan = buildDailyRoutePlan(summary);
+  const progressPct = Math.round((plan.completedCount / plan.steps.length) * 100);
+  const allDone = plan.completedCount === plan.steps.length;
+
+  return `
+    <section class="dir-card dir-daily-route-card ${allDone ? 'is-complete' : ''}" aria-label="Ruta de Hoy, bloque de 15 minutos">
+      <div class="dir-route-head">
+        <div class="dir-route-title-wrap">
+          <span class="dir-route-icon">${Icons.clock(18)}</span>
+          <div>
+            <div class="dir-route-kicker">
+              <span class="dir-route-pill">${esc(plan.periodLabel)} · ${plan.totalMinutes} min</span>
+              <span class="dir-route-count">${plan.completedCount}/${plan.steps.length} completados</span>
+            </div>
+            <h2>Ruta de Hoy · Bloque de 15 min</h2>
+            <p>Secuencia guiada de 3 pasos para avanzar sin parálisis de elección.</p>
+          </div>
+        </div>
+
+        <div class="dir-route-head-actions">
+          ${
+            plan.nextStep
+              ? `<a class="dir-btn dir-btn-primary dir-route-cta" href="${esc(plan.nextStep.href)}" title="Ir a ${esc(plan.nextStep.title)}">
+                  <span>Empezar paso siguiente</span>
+                  ${Icons.arrowRight(15)}
+                </a>`
+              : `<span class="dir-route-done-badge">${Icons.check(15)}<span>Bloque de 15 min completado</span></span>`
+          }
+        </div>
+      </div>
+
+      <div class="dir-route-progress" role="progressbar" aria-valuemin="0" aria-valuemax="${plan.steps.length}" aria-valuenow="${plan.completedCount}" aria-label="Progreso de la Ruta de Hoy">
+        <div class="dir-route-progress-fill" style="width: ${progressPct}%;"></div>
+      </div>
+
+      <div class="dir-route-steps">
+        ${plan.steps
+          .map((step) => {
+            const isNext = plan.nextStep?.id === step.id;
+            return `
+              <article class="dir-route-step ${step.done ? 'is-done' : ''} ${isNext ? 'is-next' : ''}" style="--step-accent: ${step.accent};">
+                <div class="dir-route-step-top">
+                  <button
+                    type="button"
+                    class="dir-route-check ${step.done ? 'is-checked' : ''}"
+                    data-route-toggle="${step.id}"
+                    role="checkbox"
+                    aria-checked="${step.done ? 'true' : 'false'}"
+                    aria-label="Marcar paso ${step.order} (${esc(step.title)}) como ${step.done ? 'pendiente' : 'completado'}"
+                    title="${step.done ? 'Desmarcar paso' : 'Marcar paso completado'}"
+                  >
+                    ${step.done ? Icons.check(13) : ''}
+                  </button>
+                  <div class="dir-route-step-meta">
+                    <span class="dir-route-step-badge">Paso ${step.order} · ${step.minutes} min</span>
+                    <span class="dir-route-step-pillar">${esc(step.pillar)}</span>
+                  </div>
+                </div>
+                <div class="dir-route-step-body">
+                  <h3>${esc(step.title)}</h3>
+                  <p>${esc(step.subtitle)}</p>
+                </div>
+                <div class="dir-route-step-foot">
+                  <a class="dir-route-step-link" href="${esc(step.href)}">
+                    <span>${esc(step.cta)}</span>
+                    ${Icons.arrowRight(13)}
+                  </a>
+                  ${isNext ? '<span class="dir-route-next-tag">Siguiente</span>' : ''}
+                </div>
+              </article>
+            `;
+          })
+          .join('')}
+      </div>
+    </section>
+  `;
+}
+
 function renderApp(): void {
   const theme = directoryStore.getTheme();
   document.documentElement.setAttribute('data-theme', theme);
@@ -499,8 +626,11 @@ function renderApp(): void {
             <div class="dir-kpi"><span>Atelier Hoy</span><strong>${summary.atelierHasData ? `${summary.atelierTodayDone}/${summary.atelierTotalModules}` : '--'}</strong></div>
             <div class="dir-kpi"><span>Cursos UNU</span><strong>${summary.unumbralHasData ? summary.unumbralCourses : '--'}</strong></div>
             <div class="dir-kpi"><span>OMNI ARENA</span><strong>${summary.arenaHasData ? esc(summary.arenaRank) : '--'}</strong></div>
+            <div class="dir-kpi"><span>NeuroScore</span><strong>${summary.arenaNeuroScore !== null ? summary.arenaNeuroScore : '--'}</strong></div>
           </div>
         </section>
+
+        ${renderDailyRouteCard(summary)}
 
         <section class="dir-cockpit-grid" aria-label="Continuar donde lo dejaste y recomendaciones del día">
           <article class="dir-card dir-cockpit-card">
@@ -609,7 +739,7 @@ function renderApp(): void {
                     </div>
                     <div class="dir-tutorial-step">
                       <div class="dir-tutorial-step-head">${Icons.bookOpen(16)}<strong>2. Atelier Diario</strong></div>
-                      <p>Taller práctico con Cuaderno/PDF, Lectura, Caligrafía (96 plantillas), Dibujo conectado a Internet y calco (56+ láminas), Mecanografía, Léxico (80+ reglas), Oratoria y Canto (34+ canciones).</p>
+                      <p>Taller práctico con Brújula Personal, Cuaderno/PDF, Biblioteca RSVP, Caligrafía, Dibujo, Postura Pro, Social y Carrera, Rutas YouTube, Oratoria SM-2/Feynman y Canto.</p>
                     </div>
                     <div class="dir-tutorial-step">
                       <div class="dir-tutorial-step-head">${Icons.graduation(16)}<strong>3. UNUmbral</strong></div>
@@ -617,7 +747,7 @@ function renderApp(): void {
                     </div>
                     <div class="dir-tutorial-step">
                       <div class="dir-tutorial-step-head">${Icons.omni(16)}<strong>4. OMNI ARENA</strong></div>
-                      <p>Entrenamiento 2D/3D con 33 disciplinas, 15 academias guiadas (Música, Estrategia e IQ), 5 dificultades, Modo Infinito y radar de 5 ejes.</p>
+                      <p>Entrenamiento 2D/3D con 40 disciplinas, 22 academias guiadas, NeuroNation++ Lab (test cognitivo y sesión diaria), 5 dificultades y radar de 5 ejes.</p>
                     </div>
                   </div>
                   <div class="dir-tutorial-cloud">
@@ -662,6 +792,13 @@ function renderApp(): void {
             <div class="dir-card-head">
               <h2>Agregar acceso directo al Directorio (se guarda en Supabase)</h2>
               <button type="button" class="dir-btn dir-btn-sm" id="dir-cancel-add">Cerrar</button>
+            </div>
+            <div class="dir-preset-row">
+              <span class="dir-preset-label">Plantilla rápida:</span>
+              <button type="button" class="dir-preset-chip" id="dir-preset-workout">
+                ${Icons.dumbbell(14)}
+                <span>Plantilla: Mi app de ejercicio en casa</span>
+              </button>
             </div>
             <div class="dir-custom-form-grid">
               <label>
@@ -783,6 +920,7 @@ function renderApp(): void {
                     <div class="dir-stat-box"><span>Cursos UNU</span><strong>${summary.unumbralHasData ? summary.unumbralCourses : '--'}</strong></div>
                     <div class="dir-stat-box"><span>Tareas pend.</span><strong>${summary.unumbralHasData ? summary.unumbralPendingTasks : '--'}</strong></div>
                     <div class="dir-stat-box"><span>Rango Arena</span><strong>${summary.arenaHasData ? `${esc(summary.arenaRank)} (${summary.arenaOverall})` : '--'}</strong></div>
+                    <div class="dir-stat-box"><span>NeuroScore</span><strong>${summary.arenaNeuroScore !== null ? summary.arenaNeuroScore : '--'}</strong></div>
                     <div class="dir-stat-box"><span>Partidas</span><strong>${summary.arenaHasData ? summary.arenaSessions : '--'}</strong></div>
                   </div>
                   ${
@@ -860,8 +998,36 @@ function bindEvents(): void {
     renderApp();
   });
 
+  root.querySelectorAll<HTMLButtonElement>('[data-route-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const stepId = btn.dataset.routeToggle as DailyRouteStepId | undefined;
+      if (!stepId) return;
+      toggleDailyRouteStep(stepId);
+      renderApp();
+    });
+  });
+
+  root.querySelector('#dir-preset-workout')?.addEventListener('click', () => {
+    const form = root.querySelector('#dir-add-link-form') as HTMLFormElement | null;
+    const titleInput = root.querySelector('#dir-new-title') as HTMLInputElement | null;
+    const subInput = root.querySelector('#dir-new-sub') as HTMLInputElement | null;
+    const catSelect = root.querySelector('#dir-new-cat') as HTMLSelectElement | null;
+    const colorInput = root.querySelector('#dir-new-color') as HTMLInputElement | null;
+    const urlInput = root.querySelector('#dir-new-url') as HTMLInputElement | null;
+    if (titleInput) titleInput.value = 'Ejercicio en casa';
+    if (subInput) subInput.value = 'Rutina externa sin máquinas';
+    if (catSelect) catSelect.value = 'personal';
+    if (colorInput) colorInput.value = '#16a34a';
+    if (form) form.dataset.presetIcon = 'dumbbell';
+    if (urlInput) {
+      urlInput.placeholder = 'https://tu-app-o-playlist-de-ejercicio...';
+      urlInput.focus();
+    }
+  });
+
   root.querySelector('#dir-add-link-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
     const title = (root.querySelector('#dir-new-title') as HTMLInputElement).value;
     const subtitle = (root.querySelector('#dir-new-sub') as HTMLInputElement).value;
     const url = (root.querySelector('#dir-new-url') as HTMLInputElement).value;
@@ -870,13 +1036,22 @@ function bindEvents(): void {
       'all'
     >;
     const accent = (root.querySelector('#dir-new-color') as HTMLInputElement).value;
+    const iconKey =
+      form.dataset.presetIcon === 'dumbbell' ||
+      /ejercicio|entreno|rutina|workout/i.test(`${title} ${subtitle}`)
+        ? 'dumbbell'
+        : category === 'universidad'
+          ? 'graduation'
+          : category === 'entrenamiento'
+            ? 'gamepad'
+            : 'link';
     directoryStore.addCustomLink({
       title,
       subtitle,
       url,
       category,
       accent,
-      iconKey: category === 'universidad' ? 'graduation' : category === 'entrenamiento' ? 'gamepad' : 'link',
+      iconKey,
     });
     showAddForm = false;
   });
@@ -1066,7 +1241,7 @@ cloudSync.onStatusChange(() => {
 
 directoryStore.applyIncomingEcoTheme();
 window.addEventListener('storage', (e) => {
-  if (e.key === 'umbral-theme') {
+  if (e.key === 'umbral-theme' || e.key === DAILY_ROUTE_STORAGE_KEY) {
     renderApp();
   }
 });

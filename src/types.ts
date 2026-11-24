@@ -26,7 +26,7 @@ export interface CustomDirectoryLink {
   url: string;
   category: Exclude<DirectoryCategory, 'all'>;
   accent: string;
-  iconKey: 'book' | 'graduation' | 'gamepad' | 'link' | 'star' | 'bulb';
+  iconKey: 'book' | 'graduation' | 'gamepad' | 'link' | 'star' | 'bulb' | 'dumbbell';
 }
 
 export interface DirectoryConfig {
@@ -57,10 +57,40 @@ export interface CompanionActionItem {
   priority?: 'high' | 'normal';
 }
 
+export type DailyRouteStepId = 'step-direction' | 'step-neuro' | 'step-body-skill';
+
+export interface DailyRouteStep {
+  id: DailyRouteStepId;
+  order: 1 | 2 | 3;
+  minutes: number;
+  pillar: string;
+  title: string;
+  subtitle: string;
+  href: string;
+  cta: string;
+  accent: string;
+  done: boolean;
+}
+
+export interface DailyRouteState {
+  day: string;
+  doneIds: DailyRouteStepId[];
+}
+
+export interface DailyRoutePlan {
+  day: string;
+  periodLabel: string;
+  totalMinutes: number;
+  completedCount: number;
+  steps: DailyRouteStep[];
+  nextStep: DailyRouteStep | null;
+}
+
 export interface CompanionSummary {
   atelierHasData: boolean;
   atelierTodayDone: number;
   atelierTotalModules: number;
+  atelierTodayHabits: Record<string, boolean>;
   atelierStreak: number;
   atelierResume: {
     moduleId: string;
@@ -84,5 +114,7 @@ export interface CompanionSummary {
   arenaOverall: number;
   arenaSessions: number;
   arenaScore: number;
+  arenaNeuroScore: number | null;
+  arenaNeuroDailyDone: boolean;
   arenaUpdatedAt: number;
 }

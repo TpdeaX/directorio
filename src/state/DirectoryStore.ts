@@ -3,6 +3,10 @@ import type {
   ArenaCatalogMeta,
   CompanionSummary,
   CustomDirectoryLink,
+  DailyRoutePlan,
+  DailyRouteState,
+  DailyRouteStep,
+  DailyRouteStepId,
   DirectoryCategory,
   DirectoryConfig,
   EcoAppId,
@@ -13,11 +17,12 @@ import type {
 const STORAGE_KEY = 'atelier_directory_config_v1';
 const THEME_KEY = 'umbral-theme';
 const ARENA_META_KEY = 'omni_arena_catalog_meta_v1';
+export const DAILY_ROUTE_STORAGE_KEY = 'dir_daily_route_done_v1';
 
 const DEFAULT_ARENA_META: ArenaCatalogMeta = {
   version: 1,
-  total: 33,
-  academies: 15,
+  total: 40,
+  academies: 22,
   dexterity2d: 13,
   action3d: 5,
   updatedAt: 0,
@@ -38,6 +43,7 @@ const ECO_APP_PATH: Record<EcoAppId, string> = {
 };
 
 export const DEFAULT_DIRECTORY_ORDER = [
+  'mod-compass',
   'mod-reader',
   'mod-studio',
   'mod-calligraphy',
@@ -52,7 +58,10 @@ export const DEFAULT_DIRECTORY_ORDER = [
   'mod-writing',
   'mod-finance',
   'mod-vitality',
+  'mod-career',
+  'mod-guides',
   'app-unumbral',
+  'app-neurolab',
   'app-arena',
 ];
 
@@ -517,6 +526,7 @@ export function buildCompanionSummary(
     atelierHasData: false,
     atelierTodayDone: 0,
     atelierTotalModules: 10,
+    atelierTodayHabits: {},
     atelierStreak: 0,
     atelierResume: null,
     atelierRecent: [],
@@ -534,6 +544,8 @@ export function buildCompanionSummary(
     arenaOverall: 300,
     arenaSessions: 0,
     arenaScore: 0,
+    arenaNeuroScore: null,
+    arenaNeuroDailyDone: false,
     arenaUpdatedAt: 0,
   };
 
@@ -584,14 +596,21 @@ export function buildCompanionSummary(
       if (atelier.todayHabits && typeof atelier.todayHabits === 'object') {
         const keys = Object.keys(atelier.todayHabits);
         summary.atelierTotalModules = keys.length || 10;
-        summary.atelierTodayDone =
-          atelier.lastActiveDay === today
-            ? Object.values(atelier.todayHabits).filter(Boolean).length
-            : 0;
+        if (atelier.lastActiveDay === today) {
+          summary.atelierTodayHabits = Object.fromEntries(
+            Object.entries(atelier.todayHabits).map(([k, v]) => [k, Boolean(v)])
+          );
+          summary.atelierTodayDone = Object.values(summary.atelierTodayHabits).filter(Boolean).length;
+        } else {
+          summary.atelierTodayDone = 0;
+        }
       } else if (atelier.dailyTasks) {
         const todayMap = atelier.dailyTasks[today] ?? {};
         summary.atelierTotalModules = 10;
-        summary.atelierTodayDone = Object.values(todayMap).filter(Boolean).length;
+        summary.atelierTodayHabits = Object.fromEntries(
+          Object.entries(todayMap).map(([k, v]) => [k, Boolean(v)])
+        );
+        summary.atelierTodayDone = Object.values(summary.atelierTodayHabits).filter(Boolean).length;
       }
 
       const pr = atelier.progress;
@@ -762,12 +781,23 @@ export function buildCompanionSummary(
     }
 
     // 3. OMNI ARENA (remoto arena_profile vs local omni_arena_profile_v1)
+    interface ArenaNeuroShape {
+      neuroScore?: number;
+      score?: number;
+      pillars?: Record<string, number | { score?: number; value?: number }>;
+      dailyCompletedDate?: string;
+      lastDailyDay?: string;
+      lastDailyDate?: string;
+      completedDays?: string[];
+    }
     interface ArenaProfileShape {
       level?: number;
       xp?: number;
       ratings?: Record<string, number>;
       bestScores?: Record<string, number>;
       playCounts?: Record<string, number>;
+      neuroScore?: number;
+      neuro?: ArenaNeuroShape;
       updatedAt?: number;
       // Legacy fallbacks
       rankTier?: string;
@@ -817,6 +847,34 @@ export function buildCompanionSummary(
           : [];
       summary.arenaScore =
         bestValues.length > 0 ? Math.max(...bestValues) : Number(arena.bestScore) || 0;
+
+      const directNeuro = Number(arena.neuroScore ?? arena.neuro?.neuroScore ?? arena.neuro?.score);
+      if (Number.isFinite(directNeuro) && directNeuro > 0) {
+        summary.arenaNeuroScore = Math.round(directNeuro);
+      } else if (arena.neuro?.pillars && typeof arena.neuro.pillars === 'object') {
+        const pillarNums = Object.values(arena.neuro.pillars)
+          .map((v) =>
+            typeof v === 'number'
+              ? v
+              : typeof v === 'object' && v !== null
+                ? Number(v.score ?? v.value)
+                : Number.NaN
+          )
+          .filter((n) => Number.isFinite(n) && n > 0);
+        if (pillarNums.length > 0) {
+          summary.arenaNeuroScore = Math.round(
+            pillarNums.reduce((a, b) => a + b, 0) / pillarNums.length
+          );
+        }
+      }
+
+      summary.arenaNeuroDailyDone = Boolean(
+        arena.neuro?.dailyCompletedDate === today ||
+          arena.neuro?.lastDailyDay === today ||
+          arena.neuro?.lastDailyDate === today ||
+          (Array.isArray(arena.neuro?.completedDays) && arena.neuro.completedDays.includes(today))
+      );
+
       summary.arenaUpdatedAt = Math.max(remoteArenaTs, localArenaTs);
     }
 
@@ -868,11 +926,12 @@ export function buildCompanionSummary(
         cta: 'Ir a Calma',
       });
     }
+    const arenaMeta = readArenaCatalogMeta();
     summary.recommendedItems.push({
       title: 'Ronda rápida de entrenamiento en OMNI ARENA',
       subtitle: summary.arenaHasData
         ? `Rango actual ${summary.arenaRank} (${summary.arenaOverall} radar). Mantén tus reflejos e IQ activos.`
-        : '33 disciplinas 2D/3D y 15 academias guiadas para entrenar mente y música.',
+        : `${arenaMeta.total} disciplinas 2D/3D y ${arenaMeta.academies} academias guiadas para entrenar mente y música.`,
       badge: 'Arena',
       href: resolveEcoUrl('arena'),
       cta: 'Entrar a Arena',
@@ -885,4 +944,184 @@ export function buildCompanionSummary(
   }
 
   return summary;
+}
+
+const VALID_ROUTE_STEP_IDS: DailyRouteStepId[] = [
+  'step-direction',
+  'step-neuro',
+  'step-body-skill',
+];
+
+export function readDailyRouteDone(day = todayStamp()): DailyRouteStepId[] {
+  try {
+    const parsed = safeJsonParse<DailyRouteState>(localStorage.getItem(DAILY_ROUTE_STORAGE_KEY));
+    if (!parsed || parsed.day !== day || !Array.isArray(parsed.doneIds)) {
+      return [];
+    }
+    return parsed.doneIds.filter((id): id is DailyRouteStepId =>
+      VALID_ROUTE_STEP_IDS.includes(id)
+    );
+  } catch {
+    return [];
+  }
+}
+
+export function toggleDailyRouteStep(
+  stepId: DailyRouteStepId,
+  day = todayStamp()
+): DailyRouteStepId[] {
+  const current = readDailyRouteDone(day);
+  const next = current.includes(stepId)
+    ? current.filter((id) => id !== stepId)
+    : [...current, stepId];
+  const state: DailyRouteState = { day, doneIds: next };
+  try {
+    localStorage.setItem(DAILY_ROUTE_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore storage error
+  }
+  return next;
+}
+
+export function buildDailyRoutePlan(
+  summary: CompanionSummary,
+  opts?: { hour?: number; day?: string; doneIds?: DailyRouteStepId[] }
+): DailyRoutePlan {
+  const day = opts?.day ?? todayStamp();
+  const hour = opts?.hour ?? new Date().getHours();
+  const doneIds = opts?.doneIds ?? readDailyRouteDone(day);
+
+  const periodLabel =
+    hour < 12 ? 'Bloque de mañana' : hour < 19 ? 'Bloque de tarde' : 'Cierre de noche';
+
+  // Paso 1 (3 min): Enfoque y Dirección
+  const useUnumbralFocus = summary.unumbralPendingTasks > 0 && hour >= 10 && hour < 19;
+  const step1: DailyRouteStep = useUnumbralFocus
+    ? {
+        id: 'step-direction',
+        order: 1,
+        minutes: 3,
+        pillar: 'Enfoque y Dirección',
+        title: 'Revisión rápida de tareas UNUmbral',
+        subtitle: `${summary.unumbralPendingTasks} ${
+          summary.unumbralPendingTasks === 1 ? 'tarea pendiente' : 'tareas pendientes'
+        } · elige la prioridad #1 del día.`,
+        href: resolveEcosystemAppUrl('unumbral'),
+        cta: 'Abrir UNUmbral',
+        accent: '#1d4ed8',
+        done: doneIds.includes('step-direction'),
+      }
+    : {
+        id: 'step-direction',
+        order: 1,
+        minutes: 3,
+        pillar: 'Enfoque y Dirección',
+        title:
+          hour < 12
+            ? 'Brújula Personal · Diario 3 min'
+            : hour < 19
+              ? 'Brújula Personal · Metas 90d'
+              : 'Brújula Personal · Cierre 3 min',
+        subtitle:
+          hour < 12
+            ? 'Define intención, revisa tus metas 90d y protege tus anti-hábitos.'
+            : hour < 19
+              ? 'Reajusta tu rumbo del bloque en 3 min sin saturarte.'
+              : 'Registra 1 logro del día y deja clara la intención de mañana.',
+        href: resolveEcosystemAppUrl('atelier', 'compass'),
+        cta: 'Abrir Brújula',
+        accent: '#7c3aed',
+        done: doneIds.includes('step-direction'),
+      };
+
+  // Paso 2 (8 min): Entrenamiento Cognitivo
+  const neuroSubtitle =
+    summary.arenaNeuroScore !== null
+      ? summary.arenaNeuroDailyDone
+        ? `NeuroScore ${summary.arenaNeuroScore} · sesión detectada hoy; puedes reforzar o marcar listo.`
+        : `NeuroScore ${summary.arenaNeuroScore} · sesión diaria guiada de memoria, lógica y velocidad.`
+      : 'Test cognitivo base o sesión diaria de 8 min en NeuroNation++ Lab.';
+
+  const step2: DailyRouteStep = {
+    id: 'step-neuro',
+    order: 2,
+    minutes: 8,
+    pillar: 'Entrenamiento Cognitivo',
+    title: 'NeuroNation++ · Sesión Diaria',
+    subtitle: neuroSubtitle,
+    href: resolveEcosystemAppUrl('arena', 'neurolab'),
+    cta: 'Abrir NeuroLab',
+    accent: '#4f46e5',
+    done: doneIds.includes('step-neuro'),
+  };
+
+  // Paso 3 (4 min): Cuerpo o Habilidad según lo que falte hoy
+  const habits = summary.atelierTodayHabits ?? {};
+  let step3: DailyRouteStep;
+  if (!habits.vitality && hour >= 9 && hour < 20) {
+    step3 = {
+      id: 'step-body-skill',
+      order: 3,
+      minutes: 4,
+      pillar: 'Cuerpo o Habilidad',
+      title: 'Postura Pro y pausa corporal',
+      subtitle: 'Activa el monitor webcam o 1 micro-pausa del mapa corporal en 4 min.',
+      href: resolveEcosystemAppUrl('atelier', 'vitality'),
+      cta: 'Ir a Postura Pro',
+      accent: '#0284c7',
+      done: doneIds.includes('step-body-skill'),
+    };
+  } else if (!habits.reader) {
+    step3 = {
+      id: 'step-body-skill',
+      order: 3,
+      minutes: 4,
+      pillar: 'Cuerpo o Habilidad',
+      title: 'Biblioteca y lectura rápida RSVP',
+      subtitle: 'Lee un bloque breve con ritmo WPM y fija una idea clave.',
+      href: resolveEcosystemAppUrl('atelier', 'reader'),
+      cta: 'Abrir Biblioteca',
+      accent: '#2563eb',
+      done: doneIds.includes('step-body-skill'),
+    };
+  } else if (!habits.mindset) {
+    step3 = {
+      id: 'step-body-skill',
+      order: 3,
+      minutes: 4,
+      pillar: 'Cuerpo o Habilidad',
+      title: 'Criterio y Creatividad (SCAMPER)',
+      subtitle: 'Activa pensamiento lateral o registra una frase con criterio propio.',
+      href: resolveEcosystemAppUrl('atelier', 'mindset'),
+      cta: 'Ir a Creatividad',
+      accent: '#ca8a04',
+      done: doneIds.includes('step-body-skill'),
+    };
+  } else {
+    step3 = {
+      id: 'step-body-skill',
+      order: 3,
+      minutes: 4,
+      pillar: 'Cuerpo o Habilidad',
+      title: 'Rutas y YouTube · Micro-práctica',
+      subtitle: 'Avanza 4 min en origami, dibujo o caligrafía con guía visual.',
+      href: resolveEcosystemAppUrl('atelier', 'guides'),
+      cta: 'Abrir Rutas',
+      accent: '#dc2626',
+      done: doneIds.includes('step-body-skill'),
+    };
+  }
+
+  const steps: DailyRouteStep[] = [step1, step2, step3];
+  const completedCount = steps.filter((s) => s.done).length;
+  const nextStep = steps.find((s) => !s.done) ?? null;
+
+  return {
+    day,
+    periodLabel,
+    totalMinutes: steps.reduce((acc, s) => acc + s.minutes, 0),
+    completedCount,
+    steps,
+    nextStep,
+  };
 }
